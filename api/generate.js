@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (!theme || !seed) return res.status(400).json({ error: 'Missing theme or seed' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set' });
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -22,54 +22,50 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 400,
-        system: `You are a word puzzle master for Indian players. Given a theme and a daily seed number, pick a DIFFERENT 5-letter word each day — the seed ensures variety. Respond ONLY with a valid JSON object, no markdown, no explanation:
+        system: `You are a word puzzle master for Indian players. Given a theme and a daily seed, pick a DIFFERENT 5-letter word each day. Respond ONLY with valid JSON, no markdown, no extra text:
 {"word":"XXXXX","hints":["hint1","hint2","hint3"]}
 
 Rules:
-- word: exactly 5 uppercase English letters, a real word, must be UNIQUE — use the seed to vary your choice each day
-- For Indian themes: use culturally relevant words Indians know well (RAITA, KURTA, TABLA, RAJMA, RUPEE, VEDAS, KARMA, TULSI, SITAR, SPICE, MANGO, TIGER, CHESS, SUGAR, DHOTI, SAREE, NEEM, ROGAN, GULAL, HENNA, DIWAS, MEHTA, AKHIL, PAGRI etc.)
-- For global themes: use interesting common English words related to the theme
-- hints: exactly 3 clues, progressively easier:
-  * hints[0]: cryptic indirect reference, no synonyms (revealed after 2nd guess)
-  * hints[1]: more contextual/cultural clue (revealed after 4th guess)
-  * hints[2]: most direct clue without giving the word away (revealed after 5th guess)
+- word: exactly 5 uppercase English letters, a real recognizable word
+- For Indian themes: culturally relevant words (RAITA, KURTA, TABLA, RAJMA, RUPEE, VEDAS, KARMA, TULSI, SITAR, MANGO, TIGER, CHESS, SUGAR, DHOTI, SAREE, NEEM, GULAL, HENNA, PAGRI etc.)
+- For global themes: interesting common English words related to the theme
+- hints: exactly 3 clues, progressively easier (cryptic → contextual → direct)
 - For Indian themes write hints in fun Hinglish; for global themes use clever English
-- NEVER use the word or direct synonyms in any hint`,
+- NEVER use the word or its synonyms in any hint`,
         messages: [{
           role: 'user',
-          content: `Theme: "${theme}". Today's unique seed: ${seed}. Pick a fresh word for this exact date and theme.`
+          content: `Theme: "${theme}". Seed: ${seed}. Pick a fresh word for this exact seed.`
         }]
       })
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      return res.status(500).json({ error: `Anthropic API error: ${response.status}`, detail: errText });
+      const errBody = await response.json().catch(() => ({}));
+      console.error('Anthropic error:', response.status, JSON.stringify(errBody));
+      return res.status(500).json({
+        error: `Anthropic ${response.status}`,
+        type: errBody.error?.type,
+        message: errBody.error?.message
+      });
     }
 
     const data = await response.json();
-
-    // Log for debugging (visible in Vercel function logs)
-    console.log('Claude raw response:', JSON.stringify(data.content));
+    console.log('Claude raw:', JSON.stringify(data.content));
 
     const text = data.content?.[0]?.text?.trim() || '';
-    if (!text) return res.status(500).json({ error: 'Empty response from Claude', raw: data });
+    if (!text) return res.status(500).json({ error: 'Empty response' });
 
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
 
-    if (!parsed.word || parsed.word.length !== 5 || !/^[A-Z]{5}$/.test(parsed.word)) {
+    if (!parsed.word || !/^[A-Z]{5}$/.test(parsed.word)) {
       return res.status(500).json({ error: 'Invalid word', got: parsed.word, raw: text });
     }
 
-    const hints = Array.isArray(parsed.hints) && parsed.hints.length >= 1
-      ? parsed.hints
-      : [parsed.hint || 'Think carefully...'];
-
-    return res.status(200).json({ word: parsed.word, hints, theme, seed });
+    const hints = Array.isArray(parsed.hints) ? parsed.hints : [parsed.hint || 'Think carefully...'];
+    return res.status(200).json({ word: parsed.word, hints, theme });
 
   } catch (e) {
-    console.error('generate error:', e);
+    console.error('Handler crashed:', e.message, e.stack);
     return res.status(500).json({ error: e.message });
   }
 }
