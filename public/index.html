@@ -7,40 +7,20 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="Worldle"/>
-  <meta name="description" content="AI-crafted daily word puzzle powered by Claude"/>
-  <title>Worldle — AI Daily Word Puzzle</title>
+  <meta name="description" content="AI-crafted daily word puzzle for India"/>
+  <title>Worldle 🌍 — India's Daily Word Puzzle</title>
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23080b14'/><text y='.85em' font-size='78' x='8'>🌍</text></svg>"/>
   <style>
     :root {
-      --bg: #080b14;
-      --correct: #16a34a;
-      --present: #d97706;
-      --absent: #374151;
-      --key-bg: #1a2035;
-      --text: #e2e8f0;
-      --muted: #475569;
-      --accent: #818cf8;
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --bg: #080b14; --correct: #16a34a; --present: #d97706; --absent: #374151;
+      --key-bg: #1a2035; --text: #e2e8f0; --muted: #475569; --accent: #818cf8;
+      --safe-top: env(safe-area-inset-top,0px); --safe-bottom: env(safe-area-inset-bottom,0px);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body {
-      height: 100%; overflow: hidden;
-      background: var(--bg); color: var(--text);
-      font-family: 'Georgia', 'Times New Roman', serif;
-      user-select: none; -webkit-user-select: none;
-    }
-    body {
-      display: flex; flex-direction: column; align-items: center;
-      padding-top: var(--safe-top); padding-bottom: var(--safe-bottom);
-      background:
-        radial-gradient(ellipse at 25% 15%, #0e1a35 0%, transparent 55%),
-        radial-gradient(ellipse at 75% 85%, #0d1628 0%, transparent 50%),
-        #080b14;
-    }
-    /* Stars */
-    #stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-    .star { position: absolute; border-radius: 50%; background: white; }
+    html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Georgia','Times New Roman',serif; user-select:none; -webkit-user-select:none; }
+    body { display:flex; flex-direction:column; align-items:center; padding-top:var(--safe-top); padding-bottom:var(--safe-bottom); background: radial-gradient(ellipse at 25% 15%,#0e1a35 0%,transparent 55%), radial-gradient(ellipse at 75% 85%,#0d1628 0%,transparent 50%), #080b14; }
+    #stars { position:fixed; inset:0; pointer-events:none; z-index:0; }
+    .star { position:absolute; border-radius:50%; background:white; }
     @keyframes twinkle { 0%,100%{opacity:.12} 50%{opacity:var(--b)} }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
     @keyframes flipTile { 0%{transform:rotateX(0)} 45%{transform:rotateX(-90deg)} 55%{transform:rotateX(-90deg)} 100%{transform:rotateX(0)} }
@@ -50,163 +30,197 @@
     @keyframes spin { to{transform:rotate(360deg)} }
     @keyframes bounceIn { 0%{transform:scale(.6);opacity:0} 65%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
     @keyframes pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
     /* Header */
-    #header {
-      width: 100%; max-width: 500px; padding: 14px 16px 10px;
-      border-bottom: 1px solid rgba(255,255,255,.07);
-      display: flex; flex-direction: column; align-items: center;
-      position: relative; z-index: 2; flex-shrink: 0;
+    #header { width:100%; max-width:500px; padding:10px 16px 8px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; flex-direction:column; align-items:center; position:relative; z-index:2; flex-shrink:0; }
+    #logo-row { display:flex; align-items:center; gap:9px; }
+    #logo { font-size:clamp(1.5rem,5vw,2rem); font-weight:900; letter-spacing:.28em; background:linear-gradient(95deg,#93c5fd 0%,#c4b5fd 45%,#6ee7b7 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    #subtitle { font-size:.55rem; color:var(--muted); letter-spacing:.18em; margin-top:2px; }
+
+    /* Theme selector screen */
+    #theme-screen {
+      position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+      background:radial-gradient(ellipse at 25% 15%,#0e1a35 0%,transparent 55%),radial-gradient(ellipse at 75% 85%,#0d1628 0%,transparent 50%),#080b14;
+      padding: 0 16px 20px; overflow-y:auto;
+      animation: fadeIn .3s ease;
     }
-    #logo-row { display: flex; align-items: center; gap: 9px; }
-    #logo {
-      font-size: clamp(1.6rem,5vw,2.1rem); font-weight: 900;
-      letter-spacing: .28em;
-      background: linear-gradient(95deg,#93c5fd 0%,#c4b5fd 45%,#6ee7b7 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    #theme-screen.hidden { display:none; }
+    #ts-header { width:100%; max-width:480px; padding:14px 0 10px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; flex-direction:column; align-items:center; flex-shrink:0; margin-bottom:16px; }
+    #ts-title { font-size:1rem; font-weight:700; color:#e0e7ff; letter-spacing:.1em; margin-bottom:4px; }
+    #ts-sub { font-size:.68rem; color:var(--muted); text-align:center; line-height:1.5; }
+    #ts-grid { width:100%; max-width:480px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .theme-card {
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+      border-radius:14px; padding:14px 12px; cursor:pointer;
+      transition:all .2s; display:flex; flex-direction:column; gap:4px;
+      animation: fadeUp .4s ease both;
     }
-    #subtitle { font-size: .58rem; color: var(--muted); letter-spacing: .18em; margin-top: 3px; }
+    .theme-card:active { transform:scale(.96); }
+    .theme-card.india { border-color:rgba(255,153,51,.3); background:rgba(255,153,51,.06); }
+    .theme-card.india:hover { border-color:rgba(255,153,51,.6); background:rgba(255,153,51,.1); }
+    .theme-card.global { border-color:rgba(99,102,241,.25); background:rgba(99,102,241,.05); }
+    .theme-card.global:hover { border-color:rgba(99,102,241,.5); background:rgba(99,102,241,.1); }
+    .theme-card.random { grid-column:1/-1; border-color:rgba(110,231,183,.3); background:rgba(110,231,183,.05); flex-direction:row; align-items:center; justify-content:center; gap:10px; }
+    .theme-card.random:hover { border-color:rgba(110,231,183,.6); }
+    .tc-emoji { font-size:1.5rem; }
+    .tc-name { font-size:.8rem; font-weight:700; color:#e2e8f0; }
+    .tc-desc { font-size:.62rem; color:#64748b; line-height:1.3; }
+    #ts-today { font-size:.6rem; color:#334155; text-align:center; margin-top:12px; letter-spacing:.08em; }
 
     /* Theme/Hint */
-    #theme-area {
-      width: 100%; max-width: 440px; padding: 9px 16px 4px;
-      z-index: 2; animation: fadeUp .5s ease; flex-shrink: 0;
-    }
-    #theme-badge {
-      display: flex; justify-content: center; margin-bottom: 6px;
-    }
-    #theme-inner {
-      display: inline-flex; align-items: center; gap: 7px;
-      background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.3);
-      border-radius: 20px; padding: 3px 14px;
-    }
-    #theme-label { font-size: .58rem; letter-spacing: .15em; color: #a5b4fc; }
-    #theme-name { font-size: .74rem; color: #e0e7ff; font-weight: 700; }
-    #hint-box {
-      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
-      border-radius: 10px; padding: 7px 14px; text-align: center;
-    }
-    #hint-text { font-size: .76rem; color: #94a3b8; font-style: italic; }
+    #theme-area { width:100%; max-width:440px; padding:8px 16px 4px; z-index:2; animation:fadeUp .5s ease; flex-shrink:0; }
+    #theme-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    #theme-badge-inner { display:inline-flex; align-items:center; gap:7px; background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.3); border-radius:20px; padding:3px 14px; }
+    #theme-label { font-size:.58rem; letter-spacing:.15em; color:#a5b4fc; }
+    #theme-name { font-size:.74rem; color:#e0e7ff; font-weight:700; }
+    #change-theme-btn { font-size:.62rem; color:#64748b; background:none; border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:3px 10px; cursor:pointer; font-family:'Georgia',serif; transition:all .2s; white-space:nowrap; }
+    #change-theme-btn:hover { color:#a5b4fc; border-color:rgba(99,102,241,.4); }
+    #hint-box { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:7px 14px; text-align:center; }
+    #hint-text { font-size:.76rem; color:#94a3b8; font-style:italic; }
 
     /* Loading */
-    #loading {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 16px; z-index: 2;
-    }
-    #spinner {
-      width: 42px; height: 42px; border-radius: 50%;
-      border: 3px solid rgba(99,102,241,.2); border-top-color: #818cf8;
-      animation: spin .75s linear infinite;
-    }
-    #loading-text { color: var(--muted); font-size: .78rem; letter-spacing: .15em; animation: pulse 1.5s ease-in-out infinite; }
+    #loading { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; z-index:2; }
+    #spinner { width:42px; height:42px; border-radius:50%; border:3px solid rgba(99,102,241,.2); border-top-color:#818cf8; animation:spin .75s linear infinite; }
+    #loading-text { color:var(--muted); font-size:.78rem; letter-spacing:.15em; animation:pulse 1.5s ease-in-out infinite; }
 
     /* Board */
-    #board-wrap {
-      flex: 1; display: flex; align-items: center; justify-content: center;
-      z-index: 2; padding: 4px 0;
-    }
-    #board { display: flex; flex-direction: column; gap: 5px; }
-    .row { display: flex; gap: 5px; }
-    .row.shake { animation: shake .45s ease; }
-    .tile {
-      width: clamp(48px,13vw,58px); height: clamp(48px,13vw,58px);
-      border: 2px solid rgba(255,255,255,.12); border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: clamp(1.1rem,4vw,1.5rem); font-weight: 900;
-      background: transparent; color: #f1f5f9;
-      transition: border-color .1s; font-family: 'Georgia', serif;
-    }
-    .tile.filled { border-color: rgba(255,255,255,.42); animation: popTile .09s ease; }
-    .tile.correct { background: var(--correct); border-color: var(--correct); box-shadow: 0 0 14px #16a34a55; }
-    .tile.present { background: var(--present); border-color: var(--present); box-shadow: 0 0 14px #d9770655; }
-    .tile.absent  { background: var(--absent);  border-color: var(--absent); }
-    .tile.flip    { animation: flipTile .62s ease both; }
+    #board-wrap { flex:1; display:flex; align-items:center; justify-content:center; z-index:2; padding:4px 0; }
+    #board { display:flex; flex-direction:column; gap:5px; }
+    .row { display:flex; gap:5px; }
+    .row.shake { animation:shake .45s ease; }
+    .tile { width:clamp(48px,13vw,58px); height:clamp(48px,13vw,58px); border:2px solid rgba(255,255,255,.12); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:clamp(1.1rem,4vw,1.5rem); font-weight:900; background:transparent; color:#f1f5f9; transition:border-color .1s; font-family:'Georgia',serif; }
+    .tile.filled { border-color:rgba(255,255,255,.42); animation:popTile .09s ease; }
+    .tile.correct { background:var(--correct); border-color:var(--correct); box-shadow:0 0 14px #16a34a55; }
+    .tile.present { background:var(--present); border-color:var(--present); box-shadow:0 0 14px #d9770655; }
+    .tile.absent  { background:var(--absent);  border-color:var(--absent); }
+    .tile.flip    { animation:flipTile .62s ease both; }
 
     /* Keyboard */
-    #keyboard {
-      width: 100%; max-width: 490px;
-      padding: 4px 8px calc(10px + var(--safe-bottom));
-      display: flex; flex-direction: column; gap: 6px;
-      z-index: 2; flex-shrink: 0;
-    }
-    .key-row { display: flex; gap: clamp(3px,1vw,5px); justify-content: center; }
-    .key {
-      height: clamp(40px,11vw,50px); flex: 1; max-width: 40px;
-      background: var(--key-bg); border: 1px solid rgba(255,255,255,.08);
-      border-radius: 7px; color: var(--text); font-weight: 800;
-      font-size: clamp(.7rem,2.4vw,.88rem); cursor: pointer;
-      transition: all .15s; font-family: 'Georgia', serif;
-    }
-    .key.wide { max-width: 60px; font-size: clamp(.5rem,1.6vw,.68rem); letter-spacing: .03em; }
-    .key.correct { background: var(--correct); border-color: var(--correct); box-shadow: 0 0 10px #16a34a44; }
-    .key.present { background: #b45309;         border-color: #b45309;         box-shadow: 0 0 10px #d9770644; }
-    .key.absent  { background: #111827;          border-color: #111827;          color: #4b5563; }
-    .key:active  { filter: brightness(1.5); transform: scale(.93); }
+    #keyboard { width:100%; max-width:490px; padding:4px 8px calc(10px + var(--safe-bottom)); display:flex; flex-direction:column; gap:6px; z-index:2; flex-shrink:0; }
+    .key-row { display:flex; gap:clamp(3px,1vw,5px); justify-content:center; }
+    .key { height:clamp(40px,11vw,50px); flex:1; max-width:40px; background:var(--key-bg); border:1px solid rgba(255,255,255,.08); border-radius:7px; color:var(--text); font-weight:800; font-size:clamp(.7rem,2.4vw,.88rem); cursor:pointer; transition:all .15s; font-family:'Georgia',serif; }
+    .key.wide { max-width:60px; font-size:clamp(.5rem,1.6vw,.68rem); letter-spacing:.03em; }
+    .key.correct { background:var(--correct); border-color:var(--correct); box-shadow:0 0 10px #16a34a44; }
+    .key.present { background:#b45309; border-color:#b45309; box-shadow:0 0 10px #d9770644; }
+    .key.absent  { background:#111827; border-color:#111827; color:#4b5563; }
+    .key:active  { filter:brightness(1.5); transform:scale(.93); }
 
     /* Toast */
-    #toast {
-      position: fixed; top: calc(var(--safe-top) + 68px);
-      left: 50%; transform: translateX(-50%);
-      padding: 9px 22px; border-radius: 10px; z-index: 999;
-      font-weight: 700; font-size: .82rem; white-space: nowrap;
-      pointer-events: none; display: none; backdrop-filter: blur(10px);
-      animation: slideDown .25s ease;
-    }
-    #toast.show { display: block; }
-    #toast.error   { background: rgba(220,38,38,.2);  border: 1px solid #dc2626; color: #fca5a5; }
-    #toast.success { background: rgba(22,163,74,.2);  border: 1px solid #16a34a; color: #86efac; }
+    #toast { position:fixed; top:calc(var(--safe-top) + 68px); left:50%; transform:translateX(-50%); padding:9px 22px; border-radius:10px; z-index:999; font-weight:700; font-size:.82rem; white-space:nowrap; pointer-events:none; display:none; backdrop-filter:blur(10px); animation:slideDown .25s ease; }
+    #toast.show { display:block; }
+    #toast.error   { background:rgba(220,38,38,.2);  border:1px solid #dc2626; color:#fca5a5; }
+    #toast.success { background:rgba(22,163,74,.2);  border:1px solid #16a34a; color:#86efac; }
 
     /* End overlay */
-    #end-overlay {
-      display: none; position: fixed; inset: 0; z-index: 50;
-      background: rgba(0,0,0,.78); backdrop-filter: blur(10px);
-      align-items: center; justify-content: center;
-    }
-    #end-overlay.show { display: flex; }
-    #end-card {
-      background: linear-gradient(145deg,#0f172a,#1e1b4b);
-      border: 1px solid rgba(255,255,255,.13); border-radius: 22px;
-      padding: 30px 26px; text-align: center; max-width: 310px; width: 88%;
-      animation: bounceIn .5s cubic-bezier(.34,1.56,.64,1) both;
-    }
-    #end-emoji { font-size: 2.8rem; margin-bottom: 10px; }
-    #end-title { font-size: 1.3rem; font-weight: 900; margin-bottom: 6px; }
-    #end-sub   { font-size: .78rem; color: #64748b; margin-bottom: 14px; line-height: 1.6; }
-    #end-word  { font-size: 2rem; font-weight: 900; color: #60a5fa; letter-spacing: .2em; margin-bottom: 14px; display: none; }
-    #mini-grid { display: flex; flex-direction: column; gap: 3px; align-items: center; margin-bottom: 18px; }
-    .mini-row  { display: flex; gap: 3px; }
-    .mini-tile { width: 22px; height: 22px; border-radius: 3px; }
-    #share-btn {
-      width: 100%; padding: 13px 0;
-      background: linear-gradient(135deg,#6366f1,#8b5cf6);
-      border: none; border-radius: 12px; color: #fff;
-      font-size: .88rem; font-weight: 800; cursor: pointer;
-      font-family: 'Georgia',serif; letter-spacing: .05em;
-      transition: filter .2s;
-    }
-    #share-btn:active { filter: brightness(1.3); }
-    #next-label { margin-top: 10px; font-size: .6rem; color: #1e293b; letter-spacing: .1em; }
-
-    /* Install banner */
-    #install-banner {
-      display: none; position: fixed;
-      bottom: calc(var(--safe-bottom) + 10px); left: 50%; transform: translateX(-50%);
-      background: rgba(15,23,42,.95); border: 1px solid rgba(99,102,241,.4);
-      border-radius: 14px; padding: 10px 14px; z-index: 300;
-      align-items: center; gap: 10px; max-width: 340px; width: 90%;
-      backdrop-filter: blur(16px); animation: fadeUp .4s ease;
-    }
-    #install-banner.show { display: flex; }
-    #install-banner p { font-size: .72rem; color: #94a3b8; flex: 1; line-height: 1.4; }
-    #install-btn { padding: 8px 14px; background: #6366f1; border: none; border-radius: 8px; color: #fff; font-size: .72rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
-    #install-close { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 4px; }
+    #end-overlay { display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.78); backdrop-filter:blur(10px); align-items:center; justify-content:center; }
+    #end-overlay.show { display:flex; }
+    #end-card { background:linear-gradient(145deg,#0f172a,#1e1b4b); border:1px solid rgba(255,255,255,.13); border-radius:22px; padding:28px 24px; text-align:center; max-width:310px; width:88%; animation:bounceIn .5s cubic-bezier(.34,1.56,.64,1) both; }
+    #end-emoji { font-size:2.6rem; margin-bottom:8px; }
+    #end-title { font-size:1.25rem; font-weight:900; margin-bottom:5px; }
+    #end-sub   { font-size:.76rem; color:#64748b; margin-bottom:12px; line-height:1.6; }
+    #end-word  { font-size:1.9rem; font-weight:900; color:#60a5fa; letter-spacing:.2em; margin-bottom:12px; display:none; }
+    #mini-grid { display:flex; flex-direction:column; gap:3px; align-items:center; margin-bottom:16px; }
+    .mini-row  { display:flex; gap:3px; }
+    .mini-tile { width:22px; height:22px; border-radius:3px; }
+    .end-btns { display:flex; flex-direction:column; gap:8px; }
+    .end-btn { width:100%; padding:12px 0; border:none; border-radius:12px; color:#fff; font-size:.86rem; font-weight:800; cursor:pointer; font-family:'Georgia',serif; letter-spacing:.05em; transition:filter .2s; }
+    .end-btn:active { filter:brightness(1.3); }
+    #share-btn   { background:linear-gradient(135deg,#6366f1,#8b5cf6); }
+    #newtheme-btn { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15) !important; font-size:.78rem; }
+    #next-label { margin-top:10px; font-size:.58rem; color:#1e293b; letter-spacing:.1em; }
   </style>
 </head>
 <body>
 
 <div id="stars"></div>
 
-<!-- Header -->
+<!-- THEME SELECTOR SCREEN -->
+<div id="theme-screen">
+  <div id="ts-header" style="width:100%;max-width:480px;padding:14px 0 10px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;align-items:center;flex-shrink:0;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;">
+      <span style="font-size:1.4rem">🌍</span>
+      <div style="font-size:clamp(1.5rem,5vw,2rem);font-weight:900;letter-spacing:.28em;background:linear-gradient(95deg,#93c5fd 0%,#c4b5fd 45%,#6ee7b7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">WORLDLE</div>
+      <span style="font-size:1.4rem">✨</span>
+    </div>
+    <div id="ts-title">Choose Today's Theme</div>
+    <div id="ts-sub">Pick a category and Claude will craft your puzzle!</div>
+  </div>
+
+  <div id="ts-grid">
+    <!-- Indian themes -->
+    <div class="theme-card india" onclick="selectTheme('Bollywood & Cinema','🎬')" style="animation-delay:.05s">
+      <span class="tc-emoji">🎬</span>
+      <span class="tc-name">Bollywood</span>
+      <span class="tc-desc">Films, actors & drama</span>
+    </div>
+    <div class="theme-card india" onclick="selectTheme('Cricket','🏏')" style="animation-delay:.1s">
+      <span class="tc-emoji">🏏</span>
+      <span class="tc-name">Cricket</span>
+      <span class="tc-desc">India's favourite sport</span>
+    </div>
+    <div class="theme-card india" onclick="selectTheme('Indian Food & Spices','🍛')" style="animation-delay:.15s">
+      <span class="tc-emoji">🍛</span>
+      <span class="tc-name">Indian Food</span>
+      <span class="tc-desc">Spices, dishes & snacks</span>
+    </div>
+    <div class="theme-card india" onclick="selectTheme('Indian Festivals','🪔')" style="animation-delay:.2s">
+      <span class="tc-emoji">🪔</span>
+      <span class="tc-name">Festivals</span>
+      <span class="tc-desc">Diwali, Holi & more</span>
+    </div>
+    <div class="theme-card india" onclick="selectTheme('Indian Mythology & Epics','🕉️')" style="animation-delay:.25s">
+      <span class="tc-emoji">🕉️</span>
+      <span class="tc-name">Mythology</span>
+      <span class="tc-desc">Gods, epics & legends</span>
+    </div>
+    <div class="theme-card india" onclick="selectTheme('Indian Geography & Cities','🗺️')" style="animation-delay:.3s">
+      <span class="tc-emoji">🗺️</span>
+      <span class="tc-name">India Geography</span>
+      <span class="tc-desc">Cities, rivers & states</span>
+    </div>
+    <div class="theme-card india" onclick="selectTheme('Indian Music & Dance','🎵')" style="animation-delay:.35s">
+      <span class="tc-emoji">🎵</span>
+      <span class="tc-name">Music & Dance</span>
+      <span class="tc-desc">Ragas, instruments & styles</span>
+    </div>
+    <div class="theme-card india" onclick="selectTheme('Yoga & Ayurveda','🧘')" style="animation-delay:.4s">
+      <span class="tc-emoji">🧘</span>
+      <span class="tc-name">Yoga & Ayurveda</span>
+      <span class="tc-desc">Ancient Indian wellness</span>
+    </div>
+    <!-- Global themes -->
+    <div class="theme-card global" onclick="selectTheme('Space & Cosmos','🚀')" style="animation-delay:.45s">
+      <span class="tc-emoji">🚀</span>
+      <span class="tc-name">Space</span>
+      <span class="tc-desc">Stars, planets & cosmos</span>
+    </div>
+    <div class="theme-card global" onclick="selectTheme('Science & Technology','💡')" style="animation-delay:.5s">
+      <span class="tc-emoji">💡</span>
+      <span class="tc-name">Science & Tech</span>
+      <span class="tc-desc">Inventions & discoveries</span>
+    </div>
+    <div class="theme-card global" onclick="selectTheme('Animals & Wildlife','🐯')" style="animation-delay:.55s">
+      <span class="tc-emoji">🐯</span>
+      <span class="tc-name">Wildlife</span>
+      <span class="tc-desc">Animals & nature</span>
+    </div>
+    <div class="theme-card global" onclick="selectTheme('History & Ancient Civilizations','🏛️')" style="animation-delay:.6s">
+      <span class="tc-emoji">🏛️</span>
+      <span class="tc-name">History</span>
+      <span class="tc-desc">Ancient world & empires</span>
+    </div>
+    <!-- Random -->
+    <div class="theme-card random" onclick="selectTheme('__random__','🎲')" style="animation-delay:.65s">
+      <span class="tc-emoji">🎲</span>
+      <span class="tc-name" style="font-size:.9rem">Surprise Me!</span>
+      <span class="tc-desc" style="font-size:.68rem">Claude picks the theme</span>
+    </div>
+  </div>
+  <div id="ts-today"></div>
+</div>
+
+<!-- GAME SCREEN -->
 <div id="header">
   <div id="logo-row">
     <span style="font-size:1.4rem">🌍</span>
@@ -216,39 +230,34 @@
   <div id="subtitle">AI-CRAFTED DAILY WORD PUZZLE</div>
 </div>
 
-<!-- Theme / Hint -->
 <div id="theme-area" style="display:none">
-  <div id="theme-badge">
-    <div id="theme-inner">
-      <span id="theme-label">TODAY'S THEME</span>
+  <div id="theme-top">
+    <div id="theme-badge-inner">
+      <span id="theme-label">THEME</span>
       <span id="theme-name"></span>
     </div>
+    <button id="change-theme-btn" onclick="changeTheme()">🔄 Change</button>
   </div>
   <div id="hint-box">💡 <span id="hint-text"></span></div>
 </div>
 
-<!-- Loading -->
 <div id="loading">
   <div id="spinner"></div>
-  <div id="loading-text">CLAUDE IS CRAFTING TODAY'S PUZZLE...</div>
+  <div id="loading-text">CLAUDE IS CRAFTING YOUR PUZZLE...</div>
 </div>
 
-<!-- Board -->
 <div id="board-wrap" style="display:none">
   <div id="board"></div>
 </div>
 
-<!-- Keyboard -->
 <div id="keyboard" style="display:none">
   <div class="key-row" id="krow0"></div>
   <div class="key-row" id="krow1"></div>
   <div class="key-row" id="krow2"></div>
 </div>
 
-<!-- Toast -->
 <div id="toast"></div>
 
-<!-- End overlay -->
 <div id="end-overlay">
   <div id="end-card">
     <div id="end-emoji"></div>
@@ -256,323 +265,188 @@
     <div id="end-sub"></div>
     <div id="end-word"></div>
     <div id="mini-grid"></div>
-    <button id="share-btn" onclick="shareResult()">📤 Share Result</button>
+    <div class="end-btns">
+      <button class="end-btn" id="share-btn" onclick="shareResult()">📤 Share Result</button>
+      <button class="end-btn" id="newtheme-btn" onclick="playNewTheme()">🎲 Play Another Theme</button>
+    </div>
     <div id="next-label"></div>
   </div>
 </div>
 
-<!-- Install Banner -->
-<div id="install-banner">
-  <p>📲 Add Worldle to your home screen!</p>
-  <button id="install-btn" onclick="triggerInstall()">Install</button>
-  <button id="install-close" onclick="dismissInstall()">✕</button>
-</div>
-
 <script>
-// ── Stars ─────────────────────────────────────────────────
+// ── Stars ──────────────────────────────────────────────────
 const starsEl = document.getElementById('stars');
-for (let i = 0; i < 60; i++) {
-  const s = document.createElement('div');
-  s.className = 'star';
-  const sz = Math.random() < .25 ? 2 : 1;
-  const bright = (.3 + Math.random() * .7).toFixed(2);
-  s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--b:${bright};animation:twinkle ${2+Math.random()*4}s ${Math.random()*4}s ease-in-out infinite`;
-  starsEl.appendChild(s);
-}
+for (let i=0;i<60;i++){const s=document.createElement('div');s.className='star';const sz=Math.random()<.25?2:1;s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--b:${(.3+Math.random()*.7).toFixed(2)};animation:twinkle ${2+Math.random()*4}s ${Math.random()*4}s ease-in-out infinite`;starsEl.appendChild(s);}
 
-// ── Config ────────────────────────────────────────────────
-const MAX = 6;
-const KEYBOARD = [
-  ['Q','W','E','R','T','Y','U','I','O','P'],
-  ['A','S','D','F','G','H','J','K','L'],
-  ['ENTER','Z','X','C','V','B','N','M','⌫']
-];
-const THEMES = [
-  "Space & Cosmos","Ocean Depths","Ancient Mythology","Future Technology",
-  "Culinary Arts","Wildlife Safari","Medieval Times","Jazz & Blues",
-  "Architecture","Weather Phenomena","Precious Gemstones","Aviation",
-  "Philosophy","Botany & Plants","Folklore & Legends","Martial Arts",
-  "Ancient Egypt","Deep Rainforest","Astronomy","Alchemy"
-];
-const FALLBACKS = [
-  {word:"SOLAR",theme:"Space & Cosmos",     hint:"The blazing heart of our planetary neighbourhood"},
-  {word:"CORAL",theme:"Ocean Depths",       hint:"Calcium colonies painting the reef in colour"},
-  {word:"TITAN",theme:"Ancient Mythology",  hint:"An elder god preceding the Olympian dynasty"},
-  {word:"LASER",theme:"Future Technology",  hint:"Coherent light amplified to a single wavelength"},
-  {word:"BROTH",theme:"Culinary Arts",      hint:"Bones and time distilled into liquid comfort"},
-  {word:"PRIDE",theme:"Wildlife Safari",    hint:"The social unit in which Africa's big cats live"},
-  {word:"LANCE",theme:"Medieval Times",     hint:"A couched weapon defining the tournament charge"},
-  {word:"BLUES",theme:"Jazz & Blues",       hint:"A soulful form born from American struggle and spirit"},
-  {word:"SPIRE",theme:"Architecture",       hint:"A tapering point crowning a tower toward the sky"},
-  {word:"FROST",theme:"Weather Phenomena",  hint:"Ice crystals forming where cold meets cold surface"},
-  {word:"TOPAZ",theme:"Precious Gemstones", hint:"A silicate gem prized in blue and imperial gold"},
-  {word:"STALL",theme:"Aviation",           hint:"The dangerous loss of lift at too steep an angle"},
-  {word:"ETHOS",theme:"Philosophy",         hint:"The moral character and spirit guiding a culture"},
-  {word:"SPORE",theme:"Botany & Plants",    hint:"A single cell dispersed by wind to grow anew"},
-  {word:"GNOME",theme:"Folklore & Legends", hint:"A small earth-keeper guarding underground treasure"},
-];
-const WON_MSG = ["Genius! 🧠","Magnificent! ✨","Brilliant! 🎯","Impressive! 💫","Great work! 👏","Phew! 😅"];
+// ── Config ─────────────────────────────────────────────────
+const MAX=6;
+const KEYBOARD=[['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['ENTER','Z','X','C','V','B','N','M','⌫']];
+const ALL_THEMES=['Bollywood & Cinema','Cricket','Indian Food & Spices','Indian Festivals','Indian Mythology & Epics','Indian Geography & Cities','Indian Music & Dance','Yoga & Ayurveda','Space & Cosmos','Science & Technology','Animals & Wildlife','History & Ancient Civilizations'];
+const WON_MSG=["Genius! 🧠","Magnificent! ✨","Brilliant! 🎯","Impressive! 💫","Great work! 👏","Phew! 😅"];
+const THEME_EMOJIS={'Bollywood & Cinema':'🎬','Cricket':'🏏','Indian Food & Spices':'🍛','Indian Festivals':'🪔','Indian Mythology & Epics':'🕉️','Indian Geography & Cities':'🗺️','Indian Music & Dance':'🎵','Yoga & Ayurveda':'🧘','Space & Cosmos':'🚀','Science & Technology':'💡','Animals & Wildlife':'🐯','History & Ancient Civilizations':'🏛️'};
 
-// ── State ─────────────────────────────────────────────────
-let WORD = '', THEME = '', HINT = '';
-let guesses = [], current = '', letterMap = {}, gameOver = false;
-const dailySeed = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+const FALLBACKS={
+  'Bollywood & Cinema':{word:'FILMI',hint:'Dramatic as a 3-hour masala entertainer'},
+  'Cricket':{word:'DRIVE',hint:'An elegant front-foot stroke through covers'},
+  'Indian Food & Spices':{word:'RAITA',hint:'Cooling yoghurt companion to spicy biryani'},
+  'Indian Festivals':{word:'DIWAS',hint:'Days of light celebrated across the subcontinent'},
+  'Indian Mythology & Epics':{word:'KARMA',hint:'Your actions echo through lifetimes ahead'},
+  'Indian Geography & Cities':{word:'DELHI',hint:'Capital city on the banks of Yamuna'},
+  'Indian Music & Dance':{word:'TABLA',hint:'Twin drums keeping the taal alive'},
+  'Yoga & Ayurveda':{word:'NĀSYA',hint:'Ancient nasal cleansing practice of Ayurveda'},
+  'Space & Cosmos':{word:'ORBIT',hint:'The curved path of a satellite around its parent'},
+  'Science & Technology':{word:'LASER',hint:'Coherent light amplified to a single wavelength'},
+  'Animals & Wildlife':{word:'TIGER',hint:"India's national animal prowling the jungle"},
+  'History & Ancient Civilizations':{word:'VEDAS',hint:'Sacred knowledge texts of ancient Bharat'},
+  '__random__':{word:'INDIA',hint:'The land of a billion stories and spices'},
+};
 
-function seededRng(seed) {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h,16777619)>>>0; }
-  return () => { h^=h>>>16; h=Math.imul(h,0x45d9f3b)>>>0; h^=h>>>16; h=Math.imul(h,0xb4d4e1d5)>>>0; h^=h>>>16; return (h>>>0)/4294967296; };
-}
+// ── State ──────────────────────────────────────────────────
+let WORD='',THEME='',HINT='';
+let guesses=[],current='',letterMap={},gameOver=false;
+const dailySeed=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;})();
 
-// ── Build keyboard ─────────────────────────────────────────
-KEYBOARD.forEach((row, ri) => {
-  row.forEach(k => {
-    const btn = document.createElement('button');
-    btn.className = 'key' + (k==='ENTER'||k==='⌫' ? ' wide' : '');
-    btn.textContent = k; btn.dataset.k = k;
-    btn.addEventListener('click', () => handleKey(k));
-    document.getElementById(`krow${ri}`).appendChild(btn);
-  });
-});
+function seededRng(seed){let h=2166136261>>>0;for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return()=>{h^=h>>>16;h=Math.imul(h,0x45d9f3b)>>>0;h^=h>>>16;h=Math.imul(h,0xb4d4e1d5)>>>0;h^=h>>>16;return(h>>>0)/4294967296;};}
 
-// ── Build board ────────────────────────────────────────────
-const boardEl = document.getElementById('board');
-const rowEls = [], tileEls = [];
-for (let r = 0; r < MAX; r++) {
-  const row = document.createElement('div'); row.className = 'row';
-  rowEls.push(row); tileEls.push([]);
-  for (let c = 0; c < 5; c++) {
-    const tile = document.createElement('div'); tile.className = 'tile';
-    row.appendChild(tile); tileEls[r].push(tile);
-  }
-  boardEl.appendChild(row);
-}
+// Show today's date on selector
+document.getElementById('ts-today').textContent = `Today: ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`;
+
+// ── Build keyboard & board ─────────────────────────────────
+KEYBOARD.forEach((row,ri)=>{row.forEach(k=>{const btn=document.createElement('button');btn.className='key'+(k==='ENTER'||k==='⌫'?' wide':'');btn.textContent=k;btn.dataset.k=k;btn.addEventListener('click',()=>handleKey(k));document.getElementById(`krow${ri}`).appendChild(btn);});});
+const boardEl=document.getElementById('board'),rowEls=[],tileEls=[];
+for(let r=0;r<MAX;r++){const row=document.createElement('div');row.className='row';rowEls.push(row);tileEls.push([]);for(let c=0;c<5;c++){const t=document.createElement('div');t.className='tile';row.appendChild(t);tileEls[r].push(t);}boardEl.appendChild(row);}
 
 // ── Toast ──────────────────────────────────────────────────
 let toastT;
-function toast(msg, type='error') {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = `show ${type}`;
-  clearTimeout(toastT); toastT = setTimeout(() => el.className='', 2000);
+function toast(msg,type='error'){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${type}`;clearTimeout(toastT);toastT=setTimeout(()=>el.className='',2000);}
+
+// ── Theme selection ────────────────────────────────────────
+function selectTheme(theme, emoji) {
+  let chosen = theme;
+  if (theme === '__random__') {
+    const rng = seededRng(dailySeed + 'rand');
+    chosen = ALL_THEMES[Math.floor(rng() * ALL_THEMES.length)];
+  }
+  document.getElementById('theme-screen').classList.add('hidden');
+  startGame(chosen);
 }
 
-// ── Fetch word ─────────────────────────────────────────────
-async function loadWord() {
-  // Cache check
-  const cacheKey = `worldle-word-${dailySeed}`;
+function changeTheme() {
+  // Reset game state
+  guesses=[]; current=''; letterMap={}; gameOver=false;
+  // Clear board
+  tileEls.forEach(row=>row.forEach(t=>{t.textContent='';t.className='tile';}));
+  document.querySelectorAll('.key').forEach(b=>{b.className='key'+(b.dataset.k==='ENTER'||b.dataset.k==='⌫'?' wide':'');});
+  document.getElementById('theme-area').style.display='none';
+  document.getElementById('board-wrap').style.display='none';
+  document.getElementById('keyboard').style.display='none';
+  document.getElementById('loading').style.display='none';
+  document.getElementById('end-overlay').classList.remove('show');
+  document.getElementById('theme-screen').classList.remove('hidden');
+}
+
+function playNewTheme() {
+  document.getElementById('end-overlay').classList.remove('show');
+  changeTheme();
+}
+
+// ── Start game with chosen theme ───────────────────────────
+async function startGame(theme) {
+  WORD=''; THEME=theme; HINT='';
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('board-wrap').style.display='none';
+  document.getElementById('keyboard').style.display='none';
+  document.getElementById('theme-area').style.display='none';
+
+  const cacheKey = `worldle-${dailySeed}-${theme}`;
   const cached = localStorage.getItem(cacheKey);
   if (cached) {
-    const d = JSON.parse(cached);
-    WORD=d.word; THEME=d.theme; HINT=d.hint;
-    return;
-  }
-
-  const rng = seededRng(dailySeed);
-  const theme = THEMES[Math.floor(rng() * THEMES.length)];
-
-  try {
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ theme, seed: dailySeed })
-    });
-    if (!res.ok) throw new Error('API error');
-    const data = await res.json();
-    if (data.word?.length === 5) {
-      WORD=data.word; THEME=data.theme; HINT=data.hint;
-      localStorage.setItem(cacheKey, JSON.stringify({word:WORD,theme:THEME,hint:HINT}));
-      return;
+    const d=JSON.parse(cached); WORD=d.word; HINT=d.hint;
+  } else {
+    try {
+      const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme,seed:dailySeed+theme})});
+      if(!res.ok) throw new Error();
+      const data=await res.json();
+      if(data.word?.length===5){WORD=data.word;HINT=data.hint;localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hint:HINT}));}
+      else throw new Error();
+    } catch(e) {
+      const fb=FALLBACKS[theme]||FALLBACKS['__random__'];
+      WORD=fb.word; HINT=fb.hint;
+      localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hint:HINT}));
     }
-    throw new Error('bad word');
-  } catch(e) {
-    const rng2 = seededRng(dailySeed + 'fb');
-    const fb = FALLBACKS[Math.floor(rng2() * FALLBACKS.length)];
-    WORD=fb.word; THEME=fb.theme; HINT=fb.hint;
-    localStorage.setItem(cacheKey, JSON.stringify({word:WORD,theme:THEME,hint:HINT}));
+  }
+
+  const emoji = THEME_EMOJIS[theme] || '🌍';
+  document.getElementById('theme-name').textContent = emoji + ' ' + theme;
+  document.getElementById('hint-text').textContent = HINT;
+  document.getElementById('theme-area').style.display='block';
+  document.getElementById('loading').style.display='none';
+  document.getElementById('board-wrap').style.display='flex';
+  document.getElementById('keyboard').style.display='flex';
+
+  // Restore progress for this theme
+  const progKey=`worldle-prog-${dailySeed}-${theme}`;
+  const saved=localStorage.getItem(progKey);
+  if(saved){
+    const p=JSON.parse(saved);
+    guesses=p.guesses||[]; letterMap=p.letterMap||{}; gameOver=p.gameOver||false;
+    guesses.forEach((g,ri)=>renderGuessInstant(g,ri));
+    updateKeys();
+    if(gameOver) setTimeout(()=>showEndCard(p.won),400);
   }
 }
 
-function restoreProgress() {
-  const saved = localStorage.getItem(`worldle-prog-${dailySeed}`);
-  if (!saved) return;
-  const p = JSON.parse(saved);
-  guesses = p.guesses || []; letterMap = p.letterMap || {}; gameOver = p.gameOver || false;
-  guesses.forEach((g, ri) => renderGuessInstant(g, ri));
-  updateKeys();
-  if (gameOver) setTimeout(() => showEndCard(p.won), 400);
+function saveProgress(won){
+  const progKey=`worldle-prog-${dailySeed}-${THEME}`;
+  localStorage.setItem(progKey,JSON.stringify({guesses,letterMap,gameOver,won}));
 }
 
-function saveProgress(won) {
-  localStorage.setItem(`worldle-prog-${dailySeed}`, JSON.stringify({guesses, letterMap, gameOver, won}));
-}
-
-function renderGuessInstant(guess, ri) {
-  guess.split('').forEach((l, ci) => {
-    const t = tileEls[ri][ci]; t.textContent = l;
-    t.className = 'tile ' + getTileState(guess, ci);
-  });
-}
-
-function getTileState(guess, ci) {
-  if (guess[ci] === WORD[ci]) return 'correct';
-  if (WORD.includes(guess[ci])) return 'present';
-  return 'absent';
-}
-
-function updateKeys() {
-  document.querySelectorAll('.key').forEach(btn => {
-    const st = letterMap[btn.dataset.k];
-    btn.className = 'key' + (btn.dataset.k==='ENTER'||btn.dataset.k==='⌫'?' wide':'') + (st ? ` ${st}` : '');
-  });
-}
-
-// ── Game init ──────────────────────────────────────────────
-async function init() {
-  await loadWord();
-  document.getElementById('theme-name').textContent = THEME;
-  document.getElementById('hint-text').textContent = HINT;
-  document.getElementById('theme-area').style.display = 'block';
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('board-wrap').style.display = 'flex';
-  document.getElementById('keyboard').style.display = 'flex';
-  restoreProgress();
-  if (!gameOver) setupInstallPrompt();
-}
+function renderGuessInstant(guess,ri){guess.split('').forEach((l,ci)=>{const t=tileEls[ri][ci];t.textContent=l;t.className='tile '+getTileState(guess,ci);});}
+function getTileState(guess,ci){if(guess[ci]===WORD[ci])return'correct';if(WORD.includes(guess[ci]))return'present';return'absent';}
+function updateKeys(){document.querySelectorAll('.key').forEach(btn=>{const st=letterMap[btn.dataset.k];btn.className='key'+(btn.dataset.k==='ENTER'||btn.dataset.k==='⌫'?' wide':'')+(st?` ${st}`:'');});}
 
 // ── Key handling ───────────────────────────────────────────
-function handleKey(k) {
-  if (gameOver) return;
-  if (k === 'ENTER') submitGuess();
-  else if (k === '⌫' || k === 'BACKSPACE') delLetter();
-  else if (/^[A-Z]$/.test(k) && current.length < 5) addLetter(k);
+function handleKey(k){if(gameOver)return;if(k==='ENTER')submitGuess();else if(k==='⌫'||k==='BACKSPACE')delLetter();else if(/^[A-Z]$/.test(k)&&current.length<5)addLetter(k);}
+function addLetter(l){current+=l;const ci=current.length-1,ri=guesses.length;const t=tileEls[ri][ci];t.textContent=l;t.className='tile filled';}
+function delLetter(){if(!current.length)return;const ci=current.length-1;tileEls[guesses.length][ci].textContent='';tileEls[guesses.length][ci].className='tile';current=current.slice(0,-1);}
+
+function submitGuess(){
+  if(current.length!==5){rowEls[guesses.length].classList.add('shake');setTimeout(()=>rowEls[guesses.length].classList.remove('shake'),500);toast('5 letters needed');return;}
+  const ri=guesses.length,guess=current;guesses.push(guess);current='';
+  guess.split('').forEach((l,ci)=>{const t=tileEls[ri][ci],state=getTileState(guess,ci);setTimeout(()=>{t.classList.add('flip');setTimeout(()=>{t.className=`tile ${state}`;},310);},ci*310);const cur=letterMap[l];if(state==='correct')letterMap[l]='correct';else if(state==='present'&&cur!=='correct')letterMap[l]='present';else if(!cur)letterMap[l]='absent';});
+  const won=guess===WORD,lost=!won&&guesses.length>=MAX;
+  setTimeout(()=>{updateKeys();if(won||lost){gameOver=true;saveProgress(won);setTimeout(()=>showEndCard(won),350);}else{saveProgress(false);}},5*310+200);
 }
 
-function addLetter(l) {
-  current += l;
-  const ci = current.length - 1, ri = guesses.length;
-  const t = tileEls[ri][ci]; t.textContent = l; t.className = 'tile filled';
-}
-
-function delLetter() {
-  if (!current.length) return;
-  const ci = current.length - 1;
-  tileEls[guesses.length][ci].textContent = '';
-  tileEls[guesses.length][ci].className = 'tile';
-  current = current.slice(0,-1);
-}
-
-function submitGuess() {
-  if (current.length !== 5) {
-    rowEls[guesses.length].classList.add('shake');
-    setTimeout(() => rowEls[guesses.length].classList.remove('shake'), 500);
-    toast('5 letters needed'); return;
-  }
-  const ri = guesses.length, guess = current;
-  guesses.push(guess); current = '';
-
-  // Animate reveal
-  guess.split('').forEach((l, ci) => {
-    const t = tileEls[ri][ci], state = getTileState(guess, ci);
-    setTimeout(() => {
-      t.classList.add('flip');
-      setTimeout(() => { t.className = `tile ${state}`; }, 310);
-    }, ci * 310);
-    // Update letter map
-    const cur = letterMap[l];
-    if (state === 'correct') letterMap[l] = 'correct';
-    else if (state === 'present' && cur !== 'correct') letterMap[l] = 'present';
-    else if (!cur) letterMap[l] = 'absent';
-  });
-
-  const won = guess === WORD;
-  const lost = !won && guesses.length >= MAX;
-
-  setTimeout(() => {
-    updateKeys();
-    if (won || lost) {
-      gameOver = true;
-      saveProgress(won);
-      setTimeout(() => showEndCard(won), 350);
-    } else {
-      saveProgress(false);
-    }
-  }, 5 * 310 + 200);
-}
-
-// ── End card ───────────────────────────────────────────────
-function showEndCard(won) {
-  document.getElementById('end-emoji').textContent = won ? '🏆' : '😔';
-  document.getElementById('end-title').textContent = won ? WON_MSG[guesses.length-1] : 'Better luck tomorrow!';
-  document.getElementById('end-sub').textContent = won
-    ? `Solved in ${guesses.length}/${MAX} · Theme: ${THEME}`
-    : 'The word was:';
-  const wordEl = document.getElementById('end-word');
-  wordEl.style.display = won ? 'none' : 'block';
-  wordEl.textContent = WORD;
-
-  const grid = document.getElementById('mini-grid'); grid.innerHTML = '';
-  guesses.forEach(g => {
-    const row = document.createElement('div'); row.className = 'mini-row';
-    g.split('').forEach((l, i) => {
-      const t = document.createElement('div'); t.className = 'mini-tile';
-      t.style.background = l===WORD[i] ? '#16a34a' : WORD.includes(l) ? '#d97706' : '#374151';
-      row.appendChild(t);
-    });
-    grid.appendChild(row);
-  });
-
-  const hrs = 24 - new Date().getHours();
-  document.getElementById('next-label').textContent = `NEXT PUZZLE IN ~${hrs} HOUR${hrs!==1?'S':''}`;
+function showEndCard(won){
+  document.getElementById('end-emoji').textContent=won?'🏆':'😔';
+  document.getElementById('end-title').textContent=won?WON_MSG[guesses.length-1]:'Better luck next time!';
+  document.getElementById('end-sub').textContent=won?`Solved in ${guesses.length}/${MAX} · ${THEME}`:'The word was:';
+  const wordEl=document.getElementById('end-word');wordEl.style.display=won?'none':'block';wordEl.textContent=WORD;
+  const grid=document.getElementById('mini-grid');grid.innerHTML='';
+  guesses.forEach(g=>{const row=document.createElement('div');row.className='mini-row';g.split('').forEach((l,i)=>{const t=document.createElement('div');t.className='mini-tile';t.style.background=l===WORD[i]?'#16a34a':WORD.includes(l)?'#d97706':'#374151';row.appendChild(t);});grid.appendChild(row);});
+  const hrs=24-new Date().getHours();
+  document.getElementById('next-label').textContent=`SAME THEME RESETS IN ~${hrs} HOUR${hrs!==1?'S':''}`;
   document.getElementById('end-overlay').classList.add('show');
 }
 
-function shareResult() {
-  const won = guesses[guesses.length-1] === WORD;
-  const grid = guesses.map(g =>
-    g.split('').map((l,i) => l===WORD[i]?'🟩':WORD.includes(l)?'🟨':'⬛').join('')
-  ).join('\n');
-  const text = `🌍 Worldle — ${THEME}\n${won?guesses.length:'X'}/${MAX} · ${dailySeed}\n\n${grid}\n\nworldle.vercel.app`;
-  if (navigator.share) navigator.share({text}).catch(()=>{});
-  else navigator.clipboard?.writeText(text).then(() => toast('Copied! 📋','success'));
+function shareResult(){
+  const won=guesses[guesses.length-1]===WORD;
+  const emoji=THEME_EMOJIS[THEME]||'🌍';
+  const grid=guesses.map(g=>g.split('').map((l,i)=>l===WORD[i]?'🟩':WORD.includes(l)?'🟨':'⬛').join('')).join('\n');
+  const text=`${emoji} Worldle — ${THEME}\n${won?guesses.length:'X'}/${MAX} · ${dailySeed}\n\n${grid}\n\nPlay at worldle.vercel.app`;
+  if(navigator.share)navigator.share({text}).catch(()=>{});
+  else navigator.clipboard?.writeText(text).then(()=>toast('Copied! 📋','success'));
 }
 
-// ── Keyboard events ────────────────────────────────────────
-window.addEventListener('keydown', e => {
-  handleKey(e.key === 'Backspace' ? '⌫' : e.key.toUpperCase());
+window.addEventListener('keydown',e=>{
+  if(!document.getElementById('theme-screen').classList.contains('hidden'))return;
+  handleKey(e.key==='Backspace'?'⌫':e.key.toUpperCase());
 });
 
-// ── PWA Install ────────────────────────────────────────────
+// ── PWA ────────────────────────────────────────────────────
 let deferredPrompt;
-function setupInstallPrompt() {
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.matchMedia('(display-mode:standalone)').matches || window.navigator.standalone;
-  if (isStandalone || localStorage.getItem('install-dismissed')) return;
-  if (isIOS) setTimeout(() => document.getElementById('install-banner').classList.add('show'), 3500);
-}
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredPrompt = e;
-  if (!localStorage.getItem('install-dismissed'))
-    setTimeout(() => document.getElementById('install-banner').classList.add('show'), 3500);
-});
-function triggerInstall() {
-  document.getElementById('install-banner').classList.remove('show');
-  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => deferredPrompt=null); }
-  localStorage.setItem('install-dismissed','1');
-}
-function dismissInstall() {
-  document.getElementById('install-banner').classList.remove('show');
-  localStorage.setItem('install-dismissed','1');
-}
-
-// ── Service Worker ─────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  const sw = `const C='worldle-v1';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.add('/'))));self.addEventListener('fetch',e=>{if(e.request.url.includes('/api/'))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});`;
-  const blob = new Blob([sw],{type:'application/javascript'});
-  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
-}
-
-// ── Start ──────────────────────────────────────────────────
-init();
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
 </script>
 </body>
 </html>
