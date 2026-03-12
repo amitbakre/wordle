@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -22,34 +21,55 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 120,
-        system: `You are a word puzzle master creating puzzles for Indian players. Given a theme, respond ONLY with a JSON object — no markdown, no extra text — in this exact format: {"word":"XXXXX","hints":["hint1","hint2","hint3"]}
+        max_tokens: 400,
+        system: `You are a word puzzle master for Indian players. Given a theme and a daily seed number, pick a DIFFERENT 5-letter word each day — the seed ensures variety. Respond ONLY with a valid JSON object, no markdown, no explanation:
+{"word":"XXXXX","hints":["hint1","hint2","hint3"]}
 
 Rules:
-- Word: exactly 5 uppercase English letters, real word Indians would recognize
-- For Indian themes use culturally relevant words (RAITA, KURTA, TABLA, RAJMA, RUPEE, VEDAS, KARMA, TULSI, SITAR, SPICE, MANGO, TIGER, CHESS, SUGAR, DHOTI, SAREE, MEHTA etc.)
-- hints: array of exactly 3 clues, progressively easier:
-  * hints[0]: hardest — very cryptic, no synonyms, indirect reference (shown from start)
-  * hints[1]: medium — a bit more direct, cultural/contextual clue (shown after 2 wrong guesses)  
-  * hints[2]: easiest — most direct without giving away the word (shown after 4 wrong guesses)
-- For Indian themes, write hints in a fun Hinglish style (mix Hindi words + English)
-- For global themes, write hints in clever English
-- Never use the word itself or direct synonyms in any hint`,
-        messages: [{ role: 'user', content: `Theme: ${theme}. Seed: ${seed}.` }]
+- word: exactly 5 uppercase English letters, a real word, must be UNIQUE — use the seed to vary your choice each day
+- For Indian themes: use culturally relevant words Indians know well (RAITA, KURTA, TABLA, RAJMA, RUPEE, VEDAS, KARMA, TULSI, SITAR, SPICE, MANGO, TIGER, CHESS, SUGAR, DHOTI, SAREE, NEEM, ROGAN, GULAL, HENNA, DIWAS, MEHTA, AKHIL, PAGRI etc.)
+- For global themes: use interesting common English words related to the theme
+- hints: exactly 3 clues, progressively easier:
+  * hints[0]: cryptic indirect reference, no synonyms (revealed after 2nd guess)
+  * hints[1]: more contextual/cultural clue (revealed after 4th guess)
+  * hints[2]: most direct clue without giving the word away (revealed after 5th guess)
+- For Indian themes write hints in fun Hinglish; for global themes use clever English
+- NEVER use the word or direct synonyms in any hint`,
+        messages: [{
+          role: 'user',
+          content: `Theme: "${theme}". Today's unique seed: ${seed}. Pick a fresh word for this exact date and theme.`
+        }]
       })
     });
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text?.trim() || '';
-    const parsed = JSON.parse(text.replace(/```[a-z]*|```/g, '').trim());
-
-    if (!parsed.word || parsed.word.length !== 5 || !/^[A-Z]+$/.test(parsed.word)) {
-      throw new Error('Invalid word from AI');
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(500).json({ error: `Anthropic API error: ${response.status}`, detail: errText });
     }
-    // Normalise: support both hints array and legacy hint string
-    const hints = Array.isArray(parsed.hints) ? parsed.hints : [parsed.hint || ''];
-    return res.status(200).json({ word: parsed.word, hints, theme });
+
+    const data = await response.json();
+
+    // Log for debugging (visible in Vercel function logs)
+    console.log('Claude raw response:', JSON.stringify(data.content));
+
+    const text = data.content?.[0]?.text?.trim() || '';
+    if (!text) return res.status(500).json({ error: 'Empty response from Claude', raw: data });
+
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    if (!parsed.word || parsed.word.length !== 5 || !/^[A-Z]{5}$/.test(parsed.word)) {
+      return res.status(500).json({ error: 'Invalid word', got: parsed.word, raw: text });
+    }
+
+    const hints = Array.isArray(parsed.hints) && parsed.hints.length >= 1
+      ? parsed.hints
+      : [parsed.hint || 'Think carefully...'];
+
+    return res.status(200).json({ word: parsed.word, hints, theme, seed });
+
   } catch (e) {
+    console.error('generate error:', e);
     return res.status(500).json({ error: e.message });
   }
 }
