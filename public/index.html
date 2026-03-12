@@ -290,18 +290,25 @@ let WORD='',THEME='',HINTS=[],unlockedHints=0;
 let guesses=[],current='',letterMap={},gameOver=false;
 const dailySeed=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;})();
 
-// ── Purge ALL cached words from previous days ──────────────
-(function purgeOldCache(){
-  const toDelete=[];
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(!k) continue;
-    // Word cache keys: worldle-v2-YYYY-MM-DD-theme
-    if(k.startsWith('worldle-v2-') && !k.includes(dailySeed)) toDelete.push(k);
-    // Progress keys: worldle-prog2-YYYY-MM-DD-theme
-    if(k.startsWith('worldle-prog2-') && !k.includes(dailySeed)) toDelete.push(k);
+// ── NYT-style cache reset ──────────────────────────────────
+// Store the last known date. If it differs from today, wipe
+// every worldle game key in one shot — streak is preserved.
+(function resetOnNewDay(){
+  const LAST_DATE_KEY = 'worldle-last-date';
+  const lastDate = localStorage.getItem(LAST_DATE_KEY);
+  if (lastDate !== dailySeed) {
+    // New day — collect and delete every game key
+    const keysToDelete = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('worldle-') && k !== 'worldle-streak' && k !== 'worldle-audio') {
+        keysToDelete.push(k);
+      }
+    }
+    keysToDelete.forEach(k => localStorage.removeItem(k));
+    // Stamp today so we don't wipe again until tomorrow
+    localStorage.setItem(LAST_DATE_KEY, dailySeed);
   }
-  toDelete.forEach(k=>localStorage.removeItem(k));
 })();
 
 function seededRng(seed){let h=2166136261>>>0;for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return()=>{h^=h>>>16;h=Math.imul(h,0x45d9f3b)>>>0;h^=h>>>16;h=Math.imul(h,0xb4d4e1d5)>>>0;h^=h>>>16;return(h>>>0)/4294967296;};}
@@ -430,14 +437,7 @@ async function startGame(theme){
 
   const cacheKey=`worldle-v2-${dailySeed}-${theme}`;
   const cached=localStorage.getItem(cacheKey);
-  if(cached){
-    try{
-      const d=JSON.parse(cached);
-      // Extra safety: reject if saved date doesn't match today
-      if(d.date && d.date!==dailySeed){ localStorage.removeItem(cacheKey); }
-      else { WORD=d.word; HINTS=d.hints; }
-    }catch(e){ localStorage.removeItem(cacheKey); }
-  }
+  if(cached){ try{ const d=JSON.parse(cached); WORD=d.word; HINTS=d.hints; }catch(e){ localStorage.removeItem(cacheKey); } }
   else{
     try{
       const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme,seed:dailySeed+theme,hintsCount:3})});
