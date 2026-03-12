@@ -203,6 +203,7 @@
     <div id="theme-badge-inner"><span id="theme-label">THEME</span><span id="theme-name"></span></div>
     <button id="change-theme-btn" onclick="changeTheme()">🔄 Change</button>
   </div>
+  <div id="word-source" style="font-size:.55rem;letter-spacing:.1em;color:#334155;text-align:right;margin-bottom:4px;padding-right:2px;"></div>
   <div id="hints-container"></div>
 </div>
 
@@ -437,19 +438,37 @@ async function startGame(theme){
 
   const cacheKey=`worldle-v2-${dailySeed}-${theme}`;
   const cached=localStorage.getItem(cacheKey);
-  if(cached){ try{ const d=JSON.parse(cached); WORD=d.word; HINTS=d.hints; }catch(e){ localStorage.removeItem(cacheKey); } }
+  if(cached){ try{ const d=JSON.parse(cached); WORD=d.word; HINTS=d.hints;
+    document.getElementById('word-source').textContent=d.source==='ai'?'🤖 AI Generated':'📦 Offline Puzzle';
+    document.getElementById('word-source').style.color=d.source==='ai'?'#6ee7b7':'#fbbf24';
+  }catch(e){ localStorage.removeItem(cacheKey); } }
   else{
     try{
-      const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme,seed:dailySeed+theme,hintsCount:3})});
+      const res=await fetch('/api/generate',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          theme,
+          // Seed = date + theme hash — guarantees different word per day per theme
+          seed: dailySeed + '-' + theme.replace(/\s+/g,'-').toLowerCase()
+        })
+      });
       if(!res.ok)throw new Error();
       const data=await res.json();
-      if(data.word?.length===5){WORD=data.word;HINTS=data.hints||[data.hint];localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed}));}
-      else throw new Error();
+      if(data.word?.length===5){
+        WORD=data.word;HINTS=data.hints||[data.hint];
+        localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed,source:'ai'}));
+        document.getElementById('word-source').textContent='🤖 AI Generated';
+        document.getElementById('word-source').style.color='#6ee7b7';
+      }
+      else throw new Error('bad word: '+data.word);
     }catch(e){
       const fb=FALLBACKS[theme]||FALLBACKS['__random__'];
-      // Pick from fallback array if multiple exist, varying by date
       const fbEntry = Array.isArray(fb) ? fb[seededRng(dailySeed+theme)() * fb.length | 0] : fb;
       WORD=fbEntry.word;HINTS=fbEntry.hints;
+      localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed,source:'fallback'}));
+      document.getElementById('word-source').textContent='📦 Offline Puzzle';
+      document.getElementById('word-source').style.color='#fbbf24';
       localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed}));
     }
   }
