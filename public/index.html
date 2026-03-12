@@ -285,7 +285,7 @@ const FALLBACKS={
 };
 
 // ── State ──────────────────────────────────────────────────
-let WORD='',THEME='',HINTS=[],unlockedHints=1;
+let WORD='',THEME='',HINTS=[],unlockedHints=0;
 let guesses=[],current='',letterMap={},gameOver=false;
 const dailySeed=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;})();
 
@@ -327,17 +327,19 @@ function renderHints(){
       div.innerHTML=`<span class="hint-num">${i+1}.</span><span class="hint-text">${h}</span>`;
     } else {
       div.className='hint-item';
-      div.innerHTML=`<span class="hint-num">${i+1}.</span><span class="hint-locked">🔒 Revealed after guess ${i===1?2:4}</span>`;
+      const unlockAt = i===0?'2nd':i===1?'4th':'5th';
+      div.innerHTML=`<span class="hint-num">${i+1}.</span><span class="hint-locked">🔒 Revealed after ${unlockAt} guess</span>`;
     }
     c.appendChild(div);
   });
 }
 
 function maybeUnlockHint(){
-  // Unlock hint 2 after guess 2, hint 3 after guess 4
+  // Hint 1 unlocks after guess 2, hint 2 after guess 4, hint 3 after guess 5
   const prev=unlockedHints;
-  if(guesses.length>=2&&unlockedHints<2)unlockedHints=2;
-  if(guesses.length>=4&&unlockedHints<3)unlockedHints=3;
+  if(guesses.length>=2&&unlockedHints<1)unlockedHints=1;
+  if(guesses.length>=4&&unlockedHints<2)unlockedHints=2;
+  if(guesses.length>=5&&unlockedHints<3)unlockedHints=3;
   if(unlockedHints>prev){
     renderHints();
     showReactionMsg(`💡 New hint unlocked!`,'rgba(251,191,36,.2)','1px solid #fbbf24','#fde68a');
@@ -394,7 +396,7 @@ function selectTheme(theme,emoji){
   startGame(chosen);
 }
 function changeTheme(){
-  guesses=[];current='';letterMap={};gameOver=false;unlockedHints=1;
+  guesses=[];current='';letterMap={};gameOver=false;unlockedHints=0;
   tileEls.forEach(row=>row.forEach(t=>{t.textContent='';t.className='tile';}));
   document.querySelectorAll('.key').forEach(b=>{b.className='key'+(b.dataset.k==='ENTER'||b.dataset.k==='⌫'?' wide':'');});
   ['theme-area','board-wrap','keyboard'].forEach(id=>document.getElementById(id).style.display='none');
