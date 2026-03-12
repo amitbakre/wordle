@@ -408,7 +408,7 @@ function playNewTheme(){document.getElementById('end-overlay').classList.remove(
 
 // ── Start game ─────────────────────────────────────────────
 async function startGame(theme){
-  WORD='';THEME=theme;HINTS=[];unlockedHints=1;
+  WORD='';THEME=theme;HINTS=[];unlockedHints=0;
   document.getElementById('loading').style.display='flex';
   ['board-wrap','keyboard','theme-area'].forEach(id=>document.getElementById(id).style.display='none');
 
@@ -442,7 +442,7 @@ async function startGame(theme){
   const saved=localStorage.getItem(progKey);
   if(saved){
     const p=JSON.parse(saved);
-    guesses=p.guesses||[];letterMap=p.letterMap||{};gameOver=p.gameOver||false;unlockedHints=p.unlockedHints||1;
+    guesses=p.guesses||[];letterMap=p.letterMap||{};gameOver=p.gameOver||false;unlockedHints=p.unlockedHints||0;
     guesses.forEach((g,ri)=>renderGuessInstant(g,ri));
     updateKeys();renderHints();
     if(gameOver)setTimeout(()=>showEndCard(p.won),400);
