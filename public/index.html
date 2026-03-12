@@ -290,6 +290,20 @@ let WORD='',THEME='',HINTS=[],unlockedHints=0;
 let guesses=[],current='',letterMap={},gameOver=false;
 const dailySeed=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;})();
 
+// ── Purge ALL cached words from previous days ──────────────
+(function purgeOldCache(){
+  const toDelete=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k) continue;
+    // Word cache keys: worldle-v2-YYYY-MM-DD-theme
+    if(k.startsWith('worldle-v2-') && !k.includes(dailySeed)) toDelete.push(k);
+    // Progress keys: worldle-prog2-YYYY-MM-DD-theme
+    if(k.startsWith('worldle-prog2-') && !k.includes(dailySeed)) toDelete.push(k);
+  }
+  toDelete.forEach(k=>localStorage.removeItem(k));
+})();
+
 function seededRng(seed){let h=2166136261>>>0;for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return()=>{h^=h>>>16;h=Math.imul(h,0x45d9f3b)>>>0;h^=h>>>16;h=Math.imul(h,0xb4d4e1d5)>>>0;h^=h>>>16;return(h>>>0)/4294967296;};}
 
 function isIndianTheme(t){return['Bollywood & Cinema','Cricket','Indian Food & Spices','Indian Festivals','Indian Mythology & Epics','Indian Geography & Cities','Indian Music & Dance','Yoga & Ayurveda'].includes(t);}
@@ -416,18 +430,27 @@ async function startGame(theme){
 
   const cacheKey=`worldle-v2-${dailySeed}-${theme}`;
   const cached=localStorage.getItem(cacheKey);
-  if(cached){const d=JSON.parse(cached);WORD=d.word;HINTS=d.hints;}
+  if(cached){
+    try{
+      const d=JSON.parse(cached);
+      // Extra safety: reject if saved date doesn't match today
+      if(d.date && d.date!==dailySeed){ localStorage.removeItem(cacheKey); }
+      else { WORD=d.word; HINTS=d.hints; }
+    }catch(e){ localStorage.removeItem(cacheKey); }
+  }
   else{
     try{
       const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme,seed:dailySeed+theme,hintsCount:3})});
       if(!res.ok)throw new Error();
       const data=await res.json();
-      if(data.word?.length===5){WORD=data.word;HINTS=data.hints||[data.hint];localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS}));}
+      if(data.word?.length===5){WORD=data.word;HINTS=data.hints||[data.hint];localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed}));}
       else throw new Error();
     }catch(e){
       const fb=FALLBACKS[theme]||FALLBACKS['__random__'];
-      WORD=fb.word;HINTS=fb.hints;
-      localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS}));
+      // Pick from fallback array if multiple exist, varying by date
+      const fbEntry = Array.isArray(fb) ? fb[seededRng(dailySeed+theme)() * fb.length | 0] : fb;
+      WORD=fbEntry.word;HINTS=fbEntry.hints;
+      localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed}));
     }
   }
 
@@ -458,7 +481,22 @@ function saveProgress(won){
 }
 
 function renderGuessInstant(guess,ri){guess.split('').forEach((l,ci)=>{const t=tileEls[ri][ci];t.textContent=l;t.className='tile '+getTileState(guess,ci);});}
-function getTileState(guess,ci){if(guess[ci]===WORD[ci])return'correct';if(WORD.includes(guess[ci]))return'present';return'absent';}
+function getTileState(guess, ci) {
+  if (guess[ci] === WORD[ci]) return 'correct';
+  // Count how many times this letter appears in WORD
+  const letterInWord = WORD.split('').filter(l => l === guess[ci]).length;
+  // Count how many times this letter is already accounted for in positions <= ci
+  // (either correct matches or previous present matches)
+  let alreadyUsed = 0;
+  for (let i = 0; i < 5; i++) {
+    if (guess[i] === guess[ci]) {
+      if (guess[i] === WORD[i]) { alreadyUsed++; } // correct match uses one up
+      else if (i < ci) { alreadyUsed++; } // earlier present match uses one up
+    }
+  }
+  if (alreadyUsed < letterInWord) return 'present';
+  return 'absent';
+}
 function updateKeys(){document.querySelectorAll('.key').forEach(btn=>{const st=letterMap[btn.dataset.k];btn.className='key'+(btn.dataset.k==='ENTER'||btn.dataset.k==='⌫'?' wide':'')+(st?` ${st}`:'');});}
 
 // ── Key handling ───────────────────────────────────────────
@@ -469,7 +507,14 @@ function delLetter(){if(!current.length)return;const ci=current.length-1;tileEls
 function submitGuess(){
   if(current.length!==5){rowEls[guesses.length].classList.add('shake');setTimeout(()=>rowEls[guesses.length].classList.remove('shake'),500);showReactionMsg('5 letters chahiye! 😅','rgba(220,38,38,.2)','1px solid #dc2626','#fca5a5');return;}
   const ri=guesses.length,guess=current;guesses.push(guess);current='';
-  guess.split('').forEach((l,ci)=>{const t=tileEls[ri][ci],state=getTileState(guess,ci);setTimeout(()=>{t.classList.add('flip');sfxTileFlip(0);setTimeout(()=>{t.className=`tile ${state}`;if(state==='correct')sfxCorrectLetter();else if(state==='present')sfxPresentLetter();},310);},ci*310);const cur=letterMap[l];if(state==='correct')letterMap[l]='correct';else if(state==='present'&&cur!=='correct')letterMap[l]='present';else if(!cur)letterMap[l]='absent';});
+  guess.split('').forEach((l,ci)=>{
+    const t=tileEls[ri][ci], state=getTileState(guess,ci);
+    setTimeout(()=>{t.classList.add('flip');sfxTileFlip(0);setTimeout(()=>{t.className=`tile ${state}`;if(state==='correct')sfxCorrectLetter();else if(state==='present')sfxPresentLetter();},310);},ci*310);
+    const cur=letterMap[l];
+    if(state==='correct') letterMap[l]='correct';
+    else if(state==='present' && cur!=='correct') letterMap[l]='present';
+    else if(state==='absent' && !cur) letterMap[l]='absent';
+  });
   const won=guess===WORD,lost=!won&&guesses.length>=MAX;
   setTimeout(()=>{
     updateKeys();
