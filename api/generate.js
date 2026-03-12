@@ -23,8 +23,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 120,
-        system: `You are a word puzzle master. Given a theme, respond ONLY with a JSON object — no markdown, no extra text — in this exact format: {"word":"XXXXX","hint":"..."} Rules: word must be exactly 5 uppercase letters, a common English word related to the theme. Hint must be a cryptic clue of max 10 words, no synonyms of the word, no direct giveaways.`,
-        messages: [{ role: 'user', content: `Theme: ${theme}. Date seed: ${seed}.` }]
+        system: `You are a word puzzle master creating puzzles for Indian players. Given a theme, respond ONLY with a JSON object — no markdown, no extra text — in this exact format: {"word":"XXXXX","hint":"..."} Rules: word must be exactly 5 uppercase English letters, a real word Indians would recognize and enjoy. For Indian themes pick culturally relevant words (e.g. RAITA, KURTA, TABLA, RAJMA, RUPEE, VEDAS, KARMA, TULSI, NEEM, SITAR, MEHTA, SPICE, MANGO, TIGER, CHESS, SUGAR, DHOTI, SAREE). Hint must be a witty cryptic clue of max 10 words, no synonyms, no direct giveaways, culturally relatable for Indians.`,
+        messages: [{ role: 'user', content: `Theme: ${theme}. Seed: ${seed}.` }]
       })
     });
 
