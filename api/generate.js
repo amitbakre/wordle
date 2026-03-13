@@ -17,10 +17,13 @@ module.exports = async function(req, res) {
   if (!key)   { res.status(500).json({ error: 'No COHERE_API_KEY' }); return; }
   if (!theme) { res.status(400).json({ error: 'No theme' }); return; }
 
+  // Using Cohere v2 chat API
   const payload = JSON.stringify({
     model: 'command-r-plus-08-2024',
-    message: `Theme: "${theme}". Seed: ${seed}. Pick a fresh 5-letter word for this theme and seed combination.`,
-    preamble: `You are a word puzzle master for Indian players. Given a theme and a daily seed, pick a DIFFERENT 5-letter word each day. Respond ONLY with valid JSON, no markdown, no extra text:
+    messages: [
+      {
+        role: 'system',
+        content: `You are a word puzzle master for Indian players. Given a theme and a daily seed, pick a DIFFERENT 5-letter word each day. Respond ONLY with valid JSON, no markdown, no extra text:
 {"word":"XXXXX","hints":["hint1","hint2","hint3"]}
 
 Rules:
@@ -29,14 +32,20 @@ Rules:
 - For global themes: interesting common English words related to the theme
 - hints: exactly 3 clues, progressively easier (cryptic → contextual → direct)
 - For Indian themes write hints in fun Hinglish; for global themes use clever English
-- NEVER use the word or its synonyms in any hint`,
+- NEVER use the word or its synonyms in any hint`
+      },
+      {
+        role: 'user',
+        content: `Theme: "${theme}". Seed: ${seed}. Pick a fresh word for this exact seed.`
+      }
+    ],
     temperature: 0.8,
     max_tokens: 400
   });
 
   const options = {
     hostname: 'api.cohere.com',
-    path: '/v1/chat',
+    path: '/v2/chat',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -66,8 +75,14 @@ Rules:
     }
 
     const data = JSON.parse(result.body);
-    const text = data.text.trim().replace(/```json|```/g, '').trim();
+    // v2 API response format
+    const text = data.message?.content?.[0]?.text?.trim().replace(/```json|```/g, '').trim();
     console.log('Cohere text:', text);
+
+    if (!text) {
+      res.status(500).json({ error: 'Empty response', full: data });
+      return;
+    }
 
     const parsed = JSON.parse(text);
 
