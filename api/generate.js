@@ -8,16 +8,20 @@ module.exports = async function(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
-  const theme = req.body && req.body.theme;
-  const seed  = req.body && req.body.seed;
-  const key   = process.env.COHERE_API_KEY;
+  const theme     = req.body && req.body.theme;
+  const seed      = req.body && req.body.seed;
+  const usedWords = req.body && req.body.usedWords || []; // last 30 days of words
+  const key       = process.env.COHERE_API_KEY;
 
-  console.log('theme:', theme, 'seed:', seed, 'key:', key ? key.slice(0,12)+'...' : 'MISSING');
+  console.log('theme:', theme, 'seed:', seed, 'usedWords:', usedWords, 'key:', key ? key.slice(0,12)+'...' : 'MISSING');
 
   if (!key)   { res.status(500).json({ error: 'No COHERE_API_KEY' }); return; }
   if (!theme) { res.status(400).json({ error: 'No theme' }); return; }
 
-  // Using Cohere v2 chat API
+  const avoidLine = usedWords.length > 0
+    ? `\n- NEVER use any of these recently used words: ${usedWords.join(', ')}`
+    : '';
+
   const payload = JSON.stringify({
     model: 'command-r-plus-08-2024',
     messages: [
@@ -36,14 +40,14 @@ Rules:
 - For Indian themes: use common Indian cultural words that are in the English dictionary
 - hints: exactly 3 clues, progressively easier (cryptic → contextual → direct)
 - The hints should cleverly lead to the word without using the word or direct synonyms
-- For Indian themes write hints in fun Hinglish; for global themes use clever English`
+- For Indian themes write hints in fun Hinglish; for global themes use clever English${avoidLine}`
       },
       {
         role: 'user',
-        content: `Theme: "${theme}". Seed: ${seed}. Pick a fresh word for this exact seed.`
+        content: `Theme: "${theme}". Seed: ${seed}. Pick a fresh word not used in the last 30 days.`
       }
     ],
-    temperature: 0.8,
+    temperature: 0.9,
     max_tokens: 400
   });
 
@@ -79,14 +83,10 @@ Rules:
     }
 
     const data = JSON.parse(result.body);
-    // v2 API response format
     const text = data.message?.content?.[0]?.text?.trim().replace(/```json|```/g, '').trim();
     console.log('Cohere text:', text);
 
-    if (!text) {
-      res.status(500).json({ error: 'Empty response', full: data });
-      return;
-    }
+    if (!text) { res.status(500).json({ error: 'Empty response', full: data }); return; }
 
     const parsed = JSON.parse(text);
 
@@ -95,10 +95,15 @@ Rules:
       return;
     }
 
-    // Reject common truncations of longer words (ends in I/A suggesting cutoff)
     const suspicious = ['PERSI','GREEC','ROMAN','CHINE','TURKI','AFRIC','EUROP','AMERI'];
     if (suspicious.includes(parsed.word)) {
-      res.status(500).json({ error: 'Suspicious truncated word rejected', got: parsed.word });
+      res.status(500).json({ error: 'Suspicious word rejected', got: parsed.word });
+      return;
+    }
+
+    // Reject if AI returned a recently used word anyway
+    if (usedWords.includes(parsed.word)) {
+      res.status(500).json({ error: 'AI repeated a recent word', got: parsed.word });
       return;
     }
 
