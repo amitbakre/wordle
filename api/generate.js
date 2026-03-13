@@ -1,5 +1,20 @@
 const https = require('https');
 
+const THEME_POOLS = {
+  'Space & Cosmos':              ['ORBIT','COMET','LUNAR','SOLAR','NOVA','ALIEN','TITAN','PROBE','LASER','QUARK','OZONE','LIGHT','PLUTO','VENUS','DWARF','PULSE','FLARE','STORM','ASTRO','ETHER'],
+  'Cricket':                     ['PITCH','STUMP','DRIVE','COVER','GUARD','SWEEP','EXTRA','YORKER','WICKET','CREASE','SPARE'],
+  'Indian Food & Spices':        ['RAITA','CURRY','SPICE','CUMIN','CLOVE','GHEE','NAAN','ROGAN','SABZI','KORMA','HALWA','CHAAT'],
+  'Bollywood & Cinema':          ['FILMI','DANCE','DRAMA','SCENE','STORY','ACTOR','MUSIC','AWARD','SHOOT','FRAME'],
+  'Indian Festivals':            ['GULAL','HENNA','FEAST','LIGHT','FLAME','DIYA','PUJA'],
+  'Indian Mythology & Epics':    ['KARMA','VEDAS','ATMAN','DEITY','LOTUS','AVATAR','DHARMA'],
+  'Indian Geography & Cities':   ['RIVER','PLAIN','DELTA','RIDGE','COAST','FIELD','VALLEY'],
+  'Indian Music & Dance':        ['TABLA','SITAR','RAGA','TAAL','VEENA','BEATS','NOTES'],
+  'Yoga & Ayurveda':             ['TULSI','NEEM','ASANA','PRANA','DOSHA','HERBS','DETOX'],
+  'Science & Technology':        ['LASER','PIXEL','SOLAR','PROBE','WATTS','LOGIC','ARRAY','BYTES','WIRED','CODED'],
+  'Animals & Wildlife':          ['TIGER','BISON','COBRA','EAGLE','CRANE','OTTER','SLOTH','TAPIR','RHINO','HYENA'],
+  'History & Ancient Civilizations': ['SWORD','REIGN','ROYAL','TRADE','FORGE','RULER','SIEGE','ALTAR','RELIC'],
+};
+
 module.exports = async function(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -10,7 +25,7 @@ module.exports = async function(req, res) {
 
   const theme     = req.body && req.body.theme;
   const seed      = req.body && req.body.seed;
-  const usedWords = req.body && req.body.usedWords || []; // last 30 days of words
+  const usedWords = (req.body && req.body.usedWords) || [];
   const key       = process.env.COHERE_API_KEY;
 
   console.log('theme:', theme, 'seed:', seed, 'usedWords:', usedWords, 'key:', key ? key.slice(0,12)+'...' : 'MISSING');
@@ -32,25 +47,23 @@ module.exports = async function(req, res) {
 
 Rules:
 - word: exactly 5 uppercase English letters
-- The word MUST be directly and obviously related to the theme — if someone sees the word and the theme together it must make clear sense
+- The word MUST be directly and obviously related to the theme
 - NEVER pick a word just because it has 5 letters — it MUST fit the theme naturally
-- The word MUST be a real, complete, standalone English word that exists in a dictionary
-- NEVER use plural forms — SARIS, TABLAS, RAGAS are NOT valid, use SARI, TABLA, RAGA
+- The word MUST be a real complete standalone English word in a dictionary
+- NEVER use plural forms — SARIS, TABLAS are NOT valid, use SARI, TABLA
 - NEVER use verb conjugations — DANCES, PLAYED are NOT valid
 - NEVER truncate or invent words — PERSI, GREEC are NOT valid
 - NEVER use proper nouns, country names, city names, people's names
-- Word must be in BASE/ROOT form only — singular nouns, base verbs, root adjectives
-- Good Space theme examples: ORBIT, COMET, LUNAR, SOLAR, NOVA, ALIEN, TITAN, BLACK, LASER, PROBE
-- Good Cricket theme examples: PITCH, STUMP, DRIVE, COVER, GUARD, SWEEP, CREASE
-- Good Indian Food examples: RAITA, CURRY, SPICE, NAANS, GHEE — wait, NAANS is plural, use NAAN
+- Word must be in BASE/ROOT form only
+- Good Space examples: ORBIT, COMET, LUNAR, SOLAR, PROBE, TITAN, DWARF, FLARE
+- Good Cricket examples: PITCH, STUMP, DRIVE, COVER, SWEEP, GUARD
 - hints: exactly 3 clues, progressively easier (cryptic → contextual → direct)
-- Hints must clearly connect to BOTH the word AND the theme
 - For Indian themes write hints in fun Hinglish; for global themes use clever English
-- NEVER use the word or its synonyms in any hint`
+- NEVER use the word or its synonyms in any hint${avoidLine}`
       },
       {
         role: 'user',
-        content: `Theme: "${theme}". Seed: ${seed}. Pick a fresh word not used in the last 30 days.`
+        content: `Theme: "${theme}". Seed: ${seed}. Pick a fresh word strictly related to this theme.`
       }
     ],
     temperature: 0.9,
@@ -95,53 +108,37 @@ Rules:
     if (!text) { res.status(500).json({ error: 'Empty response', full: data }); return; }
 
     const parsed = JSON.parse(text);
-
-    if (!parsed.word || !/^[A-Z]{5}$/.test(parsed.word)) {
-      res.status(500).json({ error: 'Bad word format', got: parsed.word, raw: text });
-      return;
-    }
-
-    const suspicious = ['PERSI','GREEC','ROMAN','CHINE','TURKI','AFRIC','EUROP','AMERI'];
-    if (suspicious.includes(parsed.word)) {
-      res.status(500).json({ error: 'Suspicious word rejected', got: parsed.word });
-      return;
-    }
-
-    // Reject plurals — words ending in S unless they're known valid words
     const word = parsed.word;
-    const validEndingInS = ['CHESS','GLASS','GRASS','DRESS','BLESS','CROSS','PRESS','BLISS','BONUS','FOCUS','NEXUS','LOTUS','VIRUS','MINUS','TORUS','KUDOS','ETHOS'];
+
+    if (!word || !/^[A-Z]{5}$/.test(word)) {
+      res.status(500).json({ error: 'Bad word format', got: word, raw: text });
+      return;
+    }
+
+    // Reject suspicious truncated words
+    const suspicious = ['PERSI','GREEC','ROMAN','CHINE','TURKI','AFRIC','EUROP','AMERI','MERDE'];
+    if (suspicious.includes(word)) {
+      res.status(500).json({ error: 'Suspicious word rejected', got: word });
+      return;
+    }
+
+    // Reject plurals — words ending in S unless known valid
+    const validEndingInS = ['CHESS','GLASS','GRASS','DRESS','BLESS','CROSS','PRESS','BLISS','BONUS','FOCUS','NEXUS','LOTUS','VIRUS','MINUS','KUDOS','ETHOS'];
     if (word.endsWith('S') && !validEndingInS.includes(word)) {
-      console.warn('Plural rejected:', word);
       res.status(500).json({ error: 'Plural word rejected', got: word });
       return;
     }
 
-    // Theme relevance check — basic pool of known-good words per theme
-    // If AI returns something completely off, this catches it
-    const THEME_POOLS = {
-      'Space & Cosmos':              ['ORBIT','COMET','LUNAR','SOLAR','NOVA','ALIEN','TITAN','PROBE','LASER','QUARK','OZONE','ETHER','LIGHT','SPACE','PLUTO','VENUS','MARS','ASTRO','NEBUL','DWARF','PULSE','FLARE','STORM'],
-      'Cricket':                     ['PITCH','STUMP','DRIVE','COVER','GUARD','SWEEP','CREASE','SPARE','EXTRA','CAUGHT','YORKER','WICKET'],
-      'Indian Food & Spices':        ['RAITA','CURRY','SPICE','CUMIN','CLOVE','GHEE','NAAN','ROGAN','SABZI','KORMA','HALWA','CHAAT','MASALA'],
-      'Bollywood & Cinema':          ['FILMI','DANCE','DRAMA','SCENE','STORY','ACTOR','MUSIC','AWARD','SHOOT','FRAME'],
-      'Indian Festivals':            ['DIWALI','GULAL','HENNA','RANGО','FEAST','LIGHT','FLAME','MITHAI'],
-      'Indian Mythology & Epics':    ['KARMA','DHARMA','VEDAS','ATMAN','MANTR','DEITY','LOTUS','CHAKRA','AVATAR'],
-      'Indian Geography & Cities':   ['RIVER','PLAIN','DELTA','RIDGE','COAST','FIELD','VALLEY','DECCAN'],
-      'Indian Music & Dance':        ['TABLA','SITAR','RAGA','TAAL','VEENA','BEATS','RHYTH','NOTES'],
-      'Yoga & Ayurveda':             ['TULSI','NEEM','ASANA','PRANA','DOSHA','HERBS','DETOX','CHAKRA'],
-      'Science & Technology':        ['LASER','WIRED','CODED','PIXEL','SOLAR','PROBE','WATTS','LOGIC','ARRAY','BYTES'],
-      'Animals & Wildlife':          ['TIGER','BISON','COBRA','EAGLE','CRANE','OTTER','SLOTH','TAPIR','RHINO','HYENA','CIVET'],
-      'History & Ancient Civilizations': ['ROMAN','SWORD','REIGN','ROYAL','TRADE','FORGE','RULER','SIEGE','ALTAR','RELIC'],
-    };
-
-    const pool = THEME_POOLS[theme];
-    // Only hard-reject if we have a pool AND the word is obviously unrelated (not in pool and looks random)
-    // We don't reject valid words not in our pool — pool is just a sample
-    // Instead just log a warning
-    if (pool && !pool.includes(word)) {
-      console.warn(`Word "${word}" not in known pool for theme "${theme}" — may be off-topic`);
-    }
+    // Reject recently used words
+    if (usedWords.includes(word)) {
       res.status(500).json({ error: 'AI repeated a recent word', got: word });
       return;
+    }
+
+    // Warn if word seems off-theme
+    const pool = THEME_POOLS[theme];
+    if (pool && !pool.includes(word)) {
+      console.warn(`Word "${word}" not in known pool for theme "${theme}"`);
     }
 
     const hints = Array.isArray(parsed.hints) ? parsed.hints : [parsed.hint || ''];
