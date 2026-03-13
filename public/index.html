@@ -288,7 +288,7 @@ const FALLBACKS={
 
 // ── State ──────────────────────────────────────────────────
 let WORD='',THEME='',HINTS=[],unlockedHints=0;
-let guesses=[],current='',letterMap={},gameOver=false,checking=false;
+let guesses=[],current='',letterMap={},gameOver=false;
 const dailySeed=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;})();
 
 // ── NYT-style cache reset ──────────────────────────────────
@@ -543,42 +543,13 @@ function getTileState(guess, ci) {
 }
 function updateKeys(){document.querySelectorAll('.key').forEach(btn=>{const st=letterMap[btn.dataset.k];btn.className='key'+(btn.dataset.k==='ENTER'||btn.dataset.k==='⌫'?' wide':'')+(st?` ${st}`:'');});}
 
-// ── Dictionary validation ───────────────────────────────────
-const wordCache = {}; // cache results to avoid repeat API calls
-async function checkWord(word) {
-  if (wordCache[word] !== undefined) return wordCache[word];
-  try {
-    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
-    const valid = res.ok;
-    wordCache[word] = valid;
-    return valid;
-  } catch(e) {
-    // If API fails, allow the word (fail open so network issues don't break game)
-    console.warn('Dictionary check failed, allowing word:', word);
-    wordCache[word] = true;
-    return true;
-  }
-}
-
 // ── Key handling ───────────────────────────────────────────
-function handleKey(k){if(gameOver||checking)return;if(k==='ENTER')submitGuess();else if(k==='⌫'||k==='BACKSPACE')delLetter();else if(/^[A-Z]$/.test(k)&&current.length<5)addLetter(k);}
+function handleKey(k){if(gameOver)return;if(k==='ENTER')submitGuess();else if(k==='⌫'||k==='BACKSPACE')delLetter();else if(/^[A-Z]$/.test(k)&&current.length<5)addLetter(k);}
 function addLetter(l){current+=l;const ci=current.length-1,ri=guesses.length;const t=tileEls[ri][ci];t.textContent=l;t.className='tile filled';sfxKeyTap();}
 function delLetter(){if(!current.length)return;const ci=current.length-1;tileEls[guesses.length][ci].textContent='';tileEls[guesses.length][ci].className='tile';current=current.slice(0,-1);sfxDelete();}
 
-async function submitGuess(){
+function submitGuess(){
   if(current.length!==5){rowEls[guesses.length].classList.add('shake');setTimeout(()=>rowEls[guesses.length].classList.remove('shake'),500);showReactionMsg('5 letters chahiye! 😅','rgba(220,38,38,.2)','1px solid #dc2626','#fca5a5');return;}
-
-  // Validate word exists in dictionary
-  checking = true;
-  const isValid = await checkWord(current);
-  checking = false;
-  if(!isValid){
-    rowEls[guesses.length].classList.add('shake');
-    setTimeout(()=>rowEls[guesses.length].classList.remove('shake'),500);
-    sfxWrongGuess();
-    showReactionMsg(`"${current}" is not a valid word! 🤔`,'rgba(220,38,38,.2)','1px solid #dc2626','#fca5a5');
-    return;
-  }
   const ri=guesses.length,guess=current;guesses.push(guess);current='';
   guess.split('').forEach((l,ci)=>{
     const t=tileEls[ri][ci], state=getTileState(guess,ci);
