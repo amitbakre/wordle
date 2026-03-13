@@ -444,32 +444,37 @@ async function startGame(theme){
   }catch(e){ localStorage.removeItem(cacheKey); } }
   else{
     try{
+      document.getElementById('loading-text').textContent='CALLING AI...';
       const res=await fetch('/api/generate',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           theme,
-          // Seed = date + theme hash — guarantees different word per day per theme
           seed: dailySeed + '-' + theme.replace(/\s+/g,'-').toLowerCase()
         })
       });
-      if(!res.ok)throw new Error();
       const data=await res.json();
-      if(data.word?.length===5){
+      console.log('API response:', res.status, JSON.stringify(data));
+      if(res.ok && data.word?.length===5){
         WORD=data.word;HINTS=data.hints||[data.hint];
         localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed,source:'ai'}));
         document.getElementById('word-source').textContent='🤖 AI Generated';
         document.getElementById('word-source').style.color='#6ee7b7';
+      } else {
+        // Show the actual error on screen
+        const errMsg = data.error || data.message || `HTTP ${res.status}`;
+        console.error('API error:', errMsg, data);
+        document.getElementById('loading-text').textContent='API ERROR: ' + errMsg;
+        throw new Error(errMsg);
       }
-      else throw new Error('bad word: '+data.word);
     }catch(e){
+      console.error('Falling back:', e.message);
       const fb=FALLBACKS[theme]||FALLBACKS['__random__'];
       const fbEntry = Array.isArray(fb) ? fb[seededRng(dailySeed+theme)() * fb.length | 0] : fb;
       WORD=fbEntry.word;HINTS=fbEntry.hints;
       localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed,source:'fallback'}));
       document.getElementById('word-source').textContent='📦 Offline Puzzle';
       document.getElementById('word-source').style.color='#fbbf24';
-      localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed}));
     }
   }
 
