@@ -27,12 +27,16 @@ module.exports = async function(req, res) {
 {"word":"XXXXX","hints":["hint1","hint2","hint3"]}
 
 Rules:
-- word: exactly 5 uppercase English letters, a real recognizable word
-- For Indian themes: culturally relevant words (RAITA, KURTA, TABLA, RAJMA, RUPEE, VEDAS, KARMA, TULSI, SITAR, MANGO, TIGER, CHESS, SUGAR, DHOTI, SAREE, NEEM, GULAL, HENNA, PAGRI etc.)
-- For global themes: interesting common English words related to the theme
+- word: exactly 5 uppercase English letters
+- The word MUST be a real, complete, standalone English word that exists in a dictionary
+- NEVER truncate, abbreviate or invent words — PERSI, INDIA, GREEC are NOT valid (not real words)
+- NEVER use proper nouns, country names, city names or people's names
+- Good examples: TABLA, RAITA, KARMA, TIGER, CHESS, MANGO, SPICE, BRAVE, SWORD, OCEAN
+- Bad examples: PERSI (truncated), INDIA (proper noun), DELHI (city name)
+- For Indian themes: use common Indian cultural words that are in the English dictionary
 - hints: exactly 3 clues, progressively easier (cryptic → contextual → direct)
-- For Indian themes write hints in fun Hinglish; for global themes use clever English
-- NEVER use the word or its synonyms in any hint`
+- The hints should cleverly lead to the word without using the word or direct synonyms
+- For Indian themes write hints in fun Hinglish; for global themes use clever English`
       },
       {
         role: 'user',
@@ -87,7 +91,14 @@ Rules:
     const parsed = JSON.parse(text);
 
     if (!parsed.word || !/^[A-Z]{5}$/.test(parsed.word)) {
-      res.status(500).json({ error: 'Bad word', got: parsed.word, raw: text });
+      res.status(500).json({ error: 'Bad word format', got: parsed.word, raw: text });
+      return;
+    }
+
+    // Reject common truncations of longer words (ends in I/A suggesting cutoff)
+    const suspicious = ['PERSI','GREEC','ROMAN','CHINE','TURKI','AFRIC','EUROP','AMERI'];
+    if (suspicious.includes(parsed.word)) {
+      res.status(500).json({ error: 'Suspicious truncated word rejected', got: parsed.word });
       return;
     }
 
