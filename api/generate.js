@@ -10,28 +10,37 @@ module.exports = async function(req, res) {
 
   const theme = req.body && req.body.theme;
   const seed  = req.body && req.body.seed;
-  const key   = process.env.ANTHROPIC_API_KEY;
+  const key   = process.env.COHERE_API_KEY;
 
   console.log('theme:', theme, 'seed:', seed, 'key:', key ? key.slice(0,12)+'...' : 'MISSING');
 
-  if (!key)   { res.status(500).json({ error: 'No API key' }); return; }
-  if (!theme) { res.status(400).json({ error: 'No theme'  }); return; }
+  if (!key)   { res.status(500).json({ error: 'No COHERE_API_KEY' }); return; }
+  if (!theme) { res.status(400).json({ error: 'No theme' }); return; }
 
   const payload = JSON.stringify({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 400,
-    system: 'Respond ONLY with valid JSON, no markdown: {"word":"XXXXX","hints":["h1","h2","h3"]}. Word must be exactly 5 uppercase letters related to the theme. Hints get progressively easier.',
-    messages: [{ role: 'user', content: 'Theme: "' + theme + '". Seed: ' + seed }]
+    model: 'command-r-plus',
+    message: `Theme: "${theme}". Seed: ${seed}. Pick a fresh 5-letter word for this theme and seed combination.`,
+    preamble: `You are a word puzzle master for Indian players. Given a theme and a daily seed, pick a DIFFERENT 5-letter word each day. Respond ONLY with valid JSON, no markdown, no extra text:
+{"word":"XXXXX","hints":["hint1","hint2","hint3"]}
+
+Rules:
+- word: exactly 5 uppercase English letters, a real recognizable word
+- For Indian themes: culturally relevant words (RAITA, KURTA, TABLA, RAJMA, RUPEE, VEDAS, KARMA, TULSI, SITAR, MANGO, TIGER, CHESS, SUGAR, DHOTI, SAREE, NEEM, GULAL, HENNA, PAGRI etc.)
+- For global themes: interesting common English words related to the theme
+- hints: exactly 3 clues, progressively easier (cryptic → contextual → direct)
+- For Indian themes write hints in fun Hinglish; for global themes use clever English
+- NEVER use the word or its synonyms in any hint`,
+    temperature: 0.8,
+    max_tokens: 400
   });
 
   const options = {
-    hostname: 'api.anthropic.com',
-    path: '/v1/messages',
+    hostname: 'api.cohere.com',
+    path: '/v1/chat',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
+      'Authorization': 'Bearer ' + key,
       'Content-Length': Buffer.byteLength(payload)
     }
   };
@@ -49,19 +58,21 @@ module.exports = async function(req, res) {
       request.end();
     });
 
-    console.log('Anthropic status:', result.status, 'body:', result.body.slice(0, 200));
+    console.log('Cohere status:', result.status, 'body:', result.body.slice(0, 300));
 
     if (result.status !== 200) {
-      res.status(500).json({ error: 'Anthropic error ' + result.status, detail: result.body });
+      res.status(500).json({ error: 'Cohere error ' + result.status, detail: result.body });
       return;
     }
 
     const data = JSON.parse(result.body);
-    const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    const text = data.text.trim().replace(/```json|```/g, '').trim();
+    console.log('Cohere text:', text);
+
     const parsed = JSON.parse(text);
 
     if (!parsed.word || !/^[A-Z]{5}$/.test(parsed.word)) {
-      res.status(500).json({ error: 'Bad word', got: parsed.word });
+      res.status(500).json({ error: 'Bad word', got: parsed.word, raw: text });
       return;
     }
 
