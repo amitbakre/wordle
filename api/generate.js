@@ -33,8 +33,11 @@ module.exports = async function(req, res) {
 Rules:
 - word: exactly 5 uppercase English letters
 - The word MUST be a real, complete, standalone English word that exists in a dictionary
+- NEVER use plural forms of words — SARIS, TABLAS, KURTAS, RAGAS are NOT valid, use SARI, TABLA, KURTA, RAGA instead
+- NEVER use verb conjugations — DANCES, PLAYED, SINGS are NOT valid
 - NEVER truncate, abbreviate or invent words — PERSI, INDIA, GREEC are NOT valid (not real words)
 - NEVER use proper nouns, country names, city names or people's names
+- The word must be in its BASE/ROOT form only — singular nouns, base verbs, root adjectives
 - Good examples: TABLA, RAITA, KARMA, TIGER, CHESS, MANGO, SPICE, BRAVE, SWORD, OCEAN
 - Bad examples: PERSI (truncated), INDIA (proper noun), DELHI (city name)
 - For Indian themes: use common Indian cultural words that are in the English dictionary
@@ -101,15 +104,24 @@ Rules:
       return;
     }
 
-    // Reject if AI returned a recently used word anyway
-    if (usedWords.includes(parsed.word)) {
-      res.status(500).json({ error: 'AI repeated a recent word', got: parsed.word });
+    // Reject plurals — words ending in S unless they're known valid words
+    const word = parsed.word;
+    const validEndingInS = ['CHESS','GLASS','GRASS','DRESS','BLESS','CROSS','PRESS','BLISS','BONUS','FOCUS','NEXUS','LOTUS','VIRUS','MINUS','TORUS','KUDOS','ETHOS'];
+    if (word.endsWith('S') && !validEndingInS.includes(word)) {
+      console.warn('Plural rejected:', word);
+      res.status(500).json({ error: 'Plural word rejected', got: word });
+      return;
+    }
+
+    // Reject if AI repeated a recently used word
+    if (usedWords.includes(word)) {
+      res.status(500).json({ error: 'AI repeated a recent word', got: word });
       return;
     }
 
     const hints = Array.isArray(parsed.hints) ? parsed.hints : [parsed.hint || ''];
-    console.log('Success! word:', parsed.word);
-    res.status(200).json({ word: parsed.word, hints, theme });
+    console.log('Success! word:', word);
+    res.status(200).json({ word, hints, theme });
 
   } catch(e) {
     console.error('Error:', e.message);
