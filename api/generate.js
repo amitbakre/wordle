@@ -18,7 +18,7 @@ module.exports = async function(req, res) {
   if (!theme) { res.status(400).json({ error: 'No theme' }); return; }
 
   const payload = JSON.stringify({
-    model: 'command-r-plus',
+    model: 'command-r-plus-08-2024',
     message: `Theme: "${theme}". Seed: ${seed}. Pick a fresh 5-letter word for this theme and seed combination.`,
     preamble: `You are a word puzzle master for Indian players. Given a theme and a daily seed, pick a DIFFERENT 5-letter word each day. Respond ONLY with valid JSON, no markdown, no extra text:
 {"word":"XXXXX","hints":["hint1","hint2","hint3"]}
