@@ -27,23 +27,26 @@ module.exports = async function(req, res) {
     messages: [
       {
         role: 'system',
-        content: `You are a word puzzle master for Indian players. Given a theme and a daily seed, pick a DIFFERENT 5-letter word each day. Respond ONLY with valid JSON, no markdown, no extra text:
+        content: `You are a word puzzle master for Indian players. Given a theme and a daily seed, pick a 5-letter word STRICTLY related to that theme. Respond ONLY with valid JSON, no markdown, no extra text:
 {"word":"XXXXX","hints":["hint1","hint2","hint3"]}
 
 Rules:
 - word: exactly 5 uppercase English letters
+- The word MUST be directly and obviously related to the theme — if someone sees the word and the theme together it must make clear sense
+- NEVER pick a word just because it has 5 letters — it MUST fit the theme naturally
 - The word MUST be a real, complete, standalone English word that exists in a dictionary
-- NEVER use plural forms of words — SARIS, TABLAS, KURTAS, RAGAS are NOT valid, use SARI, TABLA, KURTA, RAGA instead
-- NEVER use verb conjugations — DANCES, PLAYED, SINGS are NOT valid
-- NEVER truncate, abbreviate or invent words — PERSI, INDIA, GREEC are NOT valid (not real words)
-- NEVER use proper nouns, country names, city names or people's names
-- The word must be in its BASE/ROOT form only — singular nouns, base verbs, root adjectives
-- Good examples: TABLA, RAITA, KARMA, TIGER, CHESS, MANGO, SPICE, BRAVE, SWORD, OCEAN
-- Bad examples: PERSI (truncated), INDIA (proper noun), DELHI (city name)
-- For Indian themes: use common Indian cultural words that are in the English dictionary
+- NEVER use plural forms — SARIS, TABLAS, RAGAS are NOT valid, use SARI, TABLA, RAGA
+- NEVER use verb conjugations — DANCES, PLAYED are NOT valid
+- NEVER truncate or invent words — PERSI, GREEC are NOT valid
+- NEVER use proper nouns, country names, city names, people's names
+- Word must be in BASE/ROOT form only — singular nouns, base verbs, root adjectives
+- Good Space theme examples: ORBIT, COMET, LUNAR, SOLAR, NOVA, ALIEN, TITAN, BLACK, LASER, PROBE
+- Good Cricket theme examples: PITCH, STUMP, DRIVE, COVER, GUARD, SWEEP, CREASE
+- Good Indian Food examples: RAITA, CURRY, SPICE, NAANS, GHEE — wait, NAANS is plural, use NAAN
 - hints: exactly 3 clues, progressively easier (cryptic → contextual → direct)
-- The hints should cleverly lead to the word without using the word or direct synonyms
-- For Indian themes write hints in fun Hinglish; for global themes use clever English${avoidLine}`
+- Hints must clearly connect to BOTH the word AND the theme
+- For Indian themes write hints in fun Hinglish; for global themes use clever English
+- NEVER use the word or its synonyms in any hint`
       },
       {
         role: 'user',
@@ -113,8 +116,30 @@ Rules:
       return;
     }
 
-    // Reject if AI repeated a recently used word
-    if (usedWords.includes(word)) {
+    // Theme relevance check — basic pool of known-good words per theme
+    // If AI returns something completely off, this catches it
+    const THEME_POOLS = {
+      'Space & Cosmos':              ['ORBIT','COMET','LUNAR','SOLAR','NOVA','ALIEN','TITAN','PROBE','LASER','QUARK','OZONE','ETHER','LIGHT','SPACE','PLUTO','VENUS','MARS','ASTRO','NEBUL','DWARF','PULSE','FLARE','STORM'],
+      'Cricket':                     ['PITCH','STUMP','DRIVE','COVER','GUARD','SWEEP','CREASE','SPARE','EXTRA','CAUGHT','YORKER','WICKET'],
+      'Indian Food & Spices':        ['RAITA','CURRY','SPICE','CUMIN','CLOVE','GHEE','NAAN','ROGAN','SABZI','KORMA','HALWA','CHAAT','MASALA'],
+      'Bollywood & Cinema':          ['FILMI','DANCE','DRAMA','SCENE','STORY','ACTOR','MUSIC','AWARD','SHOOT','FRAME'],
+      'Indian Festivals':            ['DIWALI','GULAL','HENNA','RANGО','FEAST','LIGHT','FLAME','MITHAI'],
+      'Indian Mythology & Epics':    ['KARMA','DHARMA','VEDAS','ATMAN','MANTR','DEITY','LOTUS','CHAKRA','AVATAR'],
+      'Indian Geography & Cities':   ['RIVER','PLAIN','DELTA','RIDGE','COAST','FIELD','VALLEY','DECCAN'],
+      'Indian Music & Dance':        ['TABLA','SITAR','RAGA','TAAL','VEENA','BEATS','RHYTH','NOTES'],
+      'Yoga & Ayurveda':             ['TULSI','NEEM','ASANA','PRANA','DOSHA','HERBS','DETOX','CHAKRA'],
+      'Science & Technology':        ['LASER','WIRED','CODED','PIXEL','SOLAR','PROBE','WATTS','LOGIC','ARRAY','BYTES'],
+      'Animals & Wildlife':          ['TIGER','BISON','COBRA','EAGLE','CRANE','OTTER','SLOTH','TAPIR','RHINO','HYENA','CIVET'],
+      'History & Ancient Civilizations': ['ROMAN','SWORD','REIGN','ROYAL','TRADE','FORGE','RULER','SIEGE','ALTAR','RELIC'],
+    };
+
+    const pool = THEME_POOLS[theme];
+    // Only hard-reject if we have a pool AND the word is obviously unrelated (not in pool and looks random)
+    // We don't reject valid words not in our pool — pool is just a sample
+    // Instead just log a warning
+    if (pool && !pool.includes(word)) {
+      console.warn(`Word "${word}" not in known pool for theme "${theme}" — may be off-topic`);
+    }
       res.status(500).json({ error: 'AI repeated a recent word', got: word });
       return;
     }
