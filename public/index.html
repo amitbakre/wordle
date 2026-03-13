@@ -316,7 +316,24 @@ function seededRng(seed){let h=2166136261>>>0;for(let i=0;i<seed.length;i++){h^=
 
 function isIndianTheme(t){return['Bollywood & Cinema','Cricket','Indian Food & Spices','Indian Festivals','Indian Mythology & Epics','Indian Geography & Cities','Indian Music & Dance','Yoga & Ayurveda'].includes(t);}
 
-// ── Streak ─────────────────────────────────────────────────
+// ── Used words history (per theme, last 30 days) ──────────
+function getUsedWords(theme) {
+  try {
+    const data = JSON.parse(localStorage.getItem('worldle-used-'+theme) || '[]');
+    // Keep only last 30 entries
+    return data.slice(-30);
+  } catch(e) { return []; }
+}
+function saveUsedWord(theme, word) {
+  try {
+    const key = 'worldle-used-'+theme;
+    const existing = getUsedWords(theme);
+    if (!existing.includes(word)) {
+      existing.push(word);
+      localStorage.setItem(key, JSON.stringify(existing.slice(-30)));
+    }
+  } catch(e) {}
+}
 function getStreak(){try{return JSON.parse(localStorage.getItem('worldle-streak')||'{"count":0,"lastDate":""}')}catch(e){return{count:0,lastDate:''};}}
 function updateStreak(won){
   const s=getStreak();
@@ -445,18 +462,21 @@ async function startGame(theme){
   else{
     try{
       document.getElementById('loading-text').textContent='CALLING AI...';
+      const usedWords = getUsedWords(theme);
       const res=await fetch('/api/generate',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           theme,
-          seed: dailySeed + '-' + theme.replace(/\s+/g,'-').toLowerCase()
+          seed: dailySeed + '-' + theme.replace(/\s+/g,'-').toLowerCase(),
+          usedWords
         })
       });
       const data=await res.json();
       console.log('API response:', res.status, JSON.stringify(data));
       if(res.ok && data.word?.length===5){
         WORD=data.word;HINTS=data.hints||[data.hint];
+        saveUsedWord(theme, WORD); // track it so it won't repeat
         localStorage.setItem(cacheKey,JSON.stringify({word:WORD,hints:HINTS,date:dailySeed,source:'ai'}));
         document.getElementById('word-source').textContent='🤖 AI Generated';
         document.getElementById('word-source').style.color='#6ee7b7';
