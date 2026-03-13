@@ -154,8 +154,7 @@ Rules:
     }
   };
 
-  try {
-    const result = await new Promise((resolve, reject) => {
+  const makeRequest = () => new Promise((resolve, reject) => {
       const request = https.request(options, (response) => {
         let data = '';
         response.on('data', chunk => data += chunk);
@@ -166,6 +165,20 @@ Rules:
       request.write(payload);
       request.end();
     });
+
+  try {
+    let result;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`Cohere attempt ${attempt}...`);
+        result = await makeRequest();
+        break; // success
+      } catch(e) {
+        console.warn(`Attempt ${attempt} failed: ${e.message}`);
+        if (attempt === 3) throw e;
+        await new Promise(r => setTimeout(r, 1000 * attempt)); // wait 1s, 2s before retry
+      }
+    }
 
     console.log('Cohere status:', result.status, 'body:', result.body.slice(0, 300));
 
